@@ -1,0 +1,11 @@
+
+{
+    "error": {
+        "code": "InvalidAuthenticationToken",
+        "innerError": {
+            "date": "2019-02-18T11:31:38",
+            "request-id": "cb85813f-31ca-4888-8369-33ebf4343b38"
+        },
+        "message": "CompactToken validation failed with reason code: 80049228."
+    }
+}
