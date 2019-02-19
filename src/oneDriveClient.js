@@ -1,8 +1,9 @@
 const axios = require('axios');
 const { logErrorAndReject } = require('./util.js');
 const _ = require('lodash');
+const querystring = require('querystring');
 
-const URL = 'https://graph.microsoft.com/v1.0'
+const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
 class OneDriveClient {
 
@@ -26,7 +27,7 @@ class OneDriveClient {
             if (message && message.match(/code: 80049228/i)) {
                 if (this.performRefresh) {
                     this.logger.info('Access token expired, trying to refresh');
-                    return this.performRefresh(this.refreshToken)
+                    return Promise.resolve(this.performRefresh(this.refreshToken))
                         .then((tokens) => {
                             this.accessToken = tokens.accessToken;
                             this.refreshToken = tokens.refreshToken;
@@ -45,7 +46,7 @@ class OneDriveClient {
     }
 
     shareTo(fileId, driveId, email) {
-        return this.request(`${URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
+        return this.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
             requireSignin: true,
             sendInvitation: false,
             roles: ["read"],
@@ -61,7 +62,7 @@ class OneDriveClient {
     }
 
     unshareFrom(fileId, driveId, email) {
-        const permissionUrl = `${URL}/drives/${driveId}/items/${fileId}/permissions`;
+        const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
         return this.request(permissionUrl)
             .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
             .then(({ data }) => {
@@ -86,15 +87,26 @@ class OneDriveClient {
         })
     }
 
-    getFilesFrom(parentId) {
+    getFilesFrom(parentId, skiptoken) {
         parentId = parentId || 'root';
         this.logger.info('Querying OneDrive files', { folder: parentId });
-        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children`)
+        let query = "";
+        if (skiptoken) {
+            query = querystring.stringify({ skiptoken });
+        }
+        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${query}`)
         .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
         .then(({ data }) => {
             const { value } = data;
+            const nextLink = data['@odata.nextLink'];
+            let skiptoken = null;
+            if (nextLink) {
+                const nextLinkQuery = new URL(nextLink).search;
+                const params = querystring.parse(nextLinkQuery);
+                skiptoken = params['$skiptoken'] || null;
+            }
             return {
-                cursor: null,
+                skiptoken,
                 files: value.map(file => ({
                     id: file.id,
                     isFolder: !!file.folder,
