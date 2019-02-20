@@ -26,6 +26,7 @@ class OneDriveAuth {
 
     tokensFromCode(authCode) {
         const qs = querystring.stringify({
+            redirect_uri: this.callbackUrl,
             grant_type: 'authorization_code',
             client_id: this.clientId,
             client_secret: this.clientSecret,
