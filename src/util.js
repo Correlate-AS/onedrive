@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const querystring = require('querystring');
 
 const logErrorAndReject = (text, logger) => {
     return error => {
@@ -12,6 +13,25 @@ const logErrorAndReject = (text, logger) => {
     }
 };
 
+const formatDriveResponse = response => {
+    const { value } = response.data;
+    const nextLink = response.data['@odata.nextLink'];
+    let skiptoken = null;
+    if (nextLink) {
+        const nextLinkQuery = new URL(nextLink).search;
+        const params = querystring.parse(nextLinkQuery);
+        skiptoken = params['$skiptoken'] || null;
+    }
+    return {
+        cursor: skiptoken,
+        items: value.map(file => ({
+            id: file.id,
+            isFolder: !!file.folder,
+            name: file.name
+        }))
+    };
+};
+
 const DEFAULT_SCOPES = [
     'offline_access',
     'files.readwrite'
@@ -19,5 +39,6 @@ const DEFAULT_SCOPES = [
 
 module.exports = {
     logErrorAndReject,
+    formatDriveResponse,
     DEFAULT_SCOPES
 };
