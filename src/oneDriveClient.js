@@ -87,12 +87,11 @@ class OneDriveClient {
         })
     }
 
-    searchFiles(parentId, options = {}) {
-        parentId = parentId || 'root';
-        this.logger.info('Searching in OneDrive', { query: options.q });
-        const query = querystring.stringify(options);
+    searchFiles(query, options = {}) {
+        this.logger.info('Searching in OneDrive', { query });
+        const qs = querystring.stringify(_.pickBy(options));
 
-        return this.request(`https://graph.microsoft.com/v1.0/drive/root/search?${query}`)
+        return this.request(`https://graph.microsoft.com/v1.0/me/drive/root/search(q='${query}')?${qs}`)
             .catch(logErrorAndReject('Non-200 while searching drive', this.logger))
             .then(formatDriveResponse);
     }
@@ -100,8 +99,8 @@ class OneDriveClient {
     getFilesFrom(parentId, options = {}) {
         parentId = parentId || 'root';
         this.logger.info('Querying OneDrive files', { folder: parentId });
-        const query = querystring.stringify(options);
-        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${query}`)
+        const qs = querystring.stringify(_.pickBy(options));
+        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${qs}`)
             .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
             .then(formatDriveResponse);
     }
