@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { logErrorAndReject } = require('./util.js');
+const { logErrorAndReject, formatDriveResponse } = require('./util.js');
 const _ = require('lodash');
 const querystring = require('querystring');
 
@@ -87,33 +87,22 @@ class OneDriveClient {
         })
     }
 
-    getFilesFrom(parentId, skiptoken) {
+    searchFiles(query, options = {}) {
+        this.logger.info('Searching in OneDrive', { query });
+        const qs = querystring.stringify(_.pickBy(options));
+
+        return this.request(`https://graph.microsoft.com/v1.0/me/drive/root/search(q='${query}')?${qs}`)
+            .catch(logErrorAndReject('Non-200 while searching drive', this.logger))
+            .then(formatDriveResponse);
+    }
+
+    getFilesFrom(parentId, options = {}) {
         parentId = parentId || 'root';
         this.logger.info('Querying OneDrive files', { folder: parentId });
-        let query = "";
-        if (skiptoken) {
-            query = querystring.stringify({ skiptoken });
-        }
-        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${query}`)
-        .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
-        .then(({ data }) => {
-            const { value } = data;
-            const nextLink = data['@odata.nextLink'];
-            let skiptoken = null;
-            if (nextLink) {
-                const nextLinkQuery = new URL(nextLink).search;
-                const params = querystring.parse(nextLinkQuery);
-                skiptoken = params['$skiptoken'] || null;
-            }
-            return {
-                skiptoken,
-                files: value.map(file => ({
-                    id: file.id,
-                    isFolder: !!file.folder,
-                    name: file.name
-                }))
-            };
-        })
+        const qs = querystring.stringify(_.pickBy(options));
+        return this.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${qs}`)
+            .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
+            .then(formatDriveResponse);
     }
 
     getFileById(fileId) {
