@@ -80,7 +80,7 @@ class OneDriveClient {
     }
 
     getAccountId() {
-        return this.request('https://graph.microsoft.com/v1.0/me/drive/')
+        return this.request('https://graph.microsoft.com/v1.0/me')
         .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger))
         .then(({ data }) => {
             return data.id;

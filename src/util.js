@@ -4,7 +4,7 @@ const logErrorAndReject = (text, logger) => {
     return error => {
         if ('response' in error) {
             const { response } = error;
-            logger.error(text, _.pick(response, ['status', 'data', 'config']));
+            logger.error(text, _.pick(response, ['status', 'data', 'config.url']));
             return Promise.reject(new Error(text));
         }
         logger.error('Unexpected error', { err: error });
@@ -14,6 +14,8 @@ const logErrorAndReject = (text, logger) => {
 
 const DEFAULT_SCOPES = [
     'offline_access',
+    'openid',
+    'user.read',
     'files.readwrite'
 ];
 
