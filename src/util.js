@@ -5,17 +5,17 @@ const logErrorAndReject = (text, logger) => {
     return error => {
         if ('response' in error) {
             const { response } = error;
-            logger.error(text, _.pick(response, ['status', 'data', 'config']));
-            return Promise.reject(new Error(text));
+            logger.error(_.pick(response, ['status', 'data', 'config']), text);
+            return Promise.reject(error);
         }
         logger.error('Unexpected error', { err: error });
         return Promise.reject(error);
     }
 };
 
-const formatDriveResponse = response => {
-    const { value } = response.data;
-    const nextLink = response.data['@odata.nextLink'];
+const formatDriveResponse = data => {
+    const { value } = data;
+    const nextLink = data['@odata.nextLink'];
     let skiptoken = null;
     if (nextLink) {
         const nextLinkQuery = new URL(nextLink).search;

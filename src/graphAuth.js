@@ -1,27 +1,33 @@
 const querystring = require('querystring');
 const axios = require('axios');
 const { logErrorAndReject } = require('./util.js');
-const { DEFAULT_SCOPES } = require('./util.js');
 
-class OneDriveAuth {
+const OAUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0';
 
-    constructor(clientId, clientSecret, callbackUrl, logger, scopes = DEFAULT_SCOPES) {
+class GraphAuth {
+
+    constructor(clientId, clientSecret, callbackUrl, scopes, logger) {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        this.scopes = scopes;
         this.callbackUrl = callbackUrl;
+        this.scopes = scopes;
         this.logger = logger;
     }
 
-    generateAuthUrl() {
-        const params = querystring.stringify({
+    generateAuthUrl(state) {
+        const params = {
             scope: this.scopes.join(' '),
             client_id: this.clientId,
             redirect_uri: this.callbackUrl,
+            prompt: 'consent',
             response_type: 'code',
-        });
+        };
+        if (state) {
+            params.state = state;
+        }
+        this.logger.info(params, "Generating OAuth url");
 
-        return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
+        return `${OAUTH_URL}/authorize?${querystring.stringify(params)}`;
     }
 
     tokensFromCode(authCode) {
@@ -34,7 +40,7 @@ class OneDriveAuth {
             code: authCode
         });
         return axios({
-            url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+            url: `${OAUTH_URL}/token`,
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             data: qs,
             method: 'POST'
@@ -56,7 +62,7 @@ class OneDriveAuth {
             scope: this.scopes.join(" "),
             refresh_token: refreshToken
         });
-        return axios(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
+        return axios(`${OAUTH_URL}/token`, {
             method: 'post',
             data,
             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
@@ -70,4 +76,4 @@ class OneDriveAuth {
 
 }
 
-module.exports = OneDriveAuth;
+module.exports = GraphAuth;

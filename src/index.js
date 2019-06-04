@@ -1,6 +1,7 @@
-const OneDriveAuth = require('./oneDriveAuth.js');
 const OneDriveClient = require('./oneDriveClient.js');
+const GraphApi = require('./graphApi.js');
+const GraphAuth = require('./graphAuth.js');
 
 module.exports = {
-    OneDriveAuth, OneDriveClient
+    OneDriveClient, GraphApi, GraphAuth
 }
