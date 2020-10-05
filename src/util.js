@@ -25,9 +25,8 @@ const formatDriveResponse = data => {
     return {
         cursor: skiptoken,
         items: value.map(file => ({
-            id: file.id,
+            ...file,
             isFolder: !!file.folder,
-            name: file.name
         }))
     };
 };
