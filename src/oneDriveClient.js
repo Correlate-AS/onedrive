@@ -91,15 +91,16 @@ class OneDriveClient {
             "@microsoft.graph.conflictBehavior": "rename"
         })
             .catch(logErrorAndReject('Non-200 while trying to create folder', this.logger))
-            .then(data => data.id);
+            .then(data => {
+                return data.name
+            });
     }
 
     createFileAndPopulate(fileName, content, folderId = '') {
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/root:/${folderId}/${fileName}.docx:/content`, 'put', {content})
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/root:/${folderId}/${fileName}.docx:/content`, 'put', content)
             .catch(logErrorAndReject('Non-200 while trying to create file with content', this.logger))
             .then(data => data.id);
     }
-
 }
 
 module.exports = OneDriveClient;
