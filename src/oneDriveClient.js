@@ -74,7 +74,8 @@ class OneDriveClient {
         .then(data => {
             return {
                 name: data.name,
-                webUrl: data.webUrl
+                webUrl: data.webUrl,
+                packageType: data.package ? data.package.type : ''
             }
         });
     }
