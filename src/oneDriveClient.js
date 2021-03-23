@@ -102,6 +102,13 @@ class OneDriveClient {
             .catch(logErrorAndReject('Non-200 while trying to create file with content', this.logger))
             .then(data => data.id);
     }
+
+    listRootFolder() {
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/root/children`)
+            .catch(logErrorAndReject('Non-200 while searching drive', this.logger))
+            .then(folder => folder.value);
+
+    }
 }
 
 module.exports = OneDriveClient;
