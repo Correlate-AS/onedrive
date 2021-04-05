@@ -85,11 +85,7 @@ class OneDriveClient {
             .then(file => file.webUrl);
     }
 
-    createFolder(folderName, rootFolder) {
-        if (!rootFolder) {
-            rootFolder = 'root'
-        }
-
+    createFolder(folderName, rootFolder = 'root') {
         const url = `https://graph.microsoft.com/v1.0/me/drive/items/${rootFolder}/children`
         return this.graphApi.request(url, 'post', {
             name: folderName,
