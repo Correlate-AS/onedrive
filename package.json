@@ -10,7 +10,7 @@
     "lint": "eslint --max-warnings 0 src/"
   },
   "devDependencies": {
-    "eslint": "^5.14.0"
+    "eslint": "^7.30.0"
   },
   "dependencies": {
     "axios": "^0.21.1",
