@@ -85,6 +85,15 @@ class OneDriveClient {
             .then(file => file.webUrl);
     }
 
+    getPreview(fileId) {
+        this.logger.info('Getting OneDrive file preview', { fileId });
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/thumbnails`)
+            .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
+            .then(data => {
+                return  data.value;
+            });
+    }
+
     createFolder(folderName, rootFolder = 'root') {
         const url = `https://graph.microsoft.com/v1.0/me/drive/items/${rootFolder}/children`
         return this.graphApi.request(url, 'post', {
