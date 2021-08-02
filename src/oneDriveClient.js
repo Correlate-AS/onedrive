@@ -49,6 +49,11 @@ class OneDriveClient {
         .then(data => data.id);
     }
 
+    getAccountInfo() {
+        return this.graphApi.request(`${ROOT_URL}/me`)
+            .catch(logErrorAndReject('Non-200 while trying to query microsoft account details', this.logger));
+    }
+
     searchFiles(query, options = {}) {
         this.logger.info('Searching in OneDrive', { query });
         const qs = querystring.stringify(_.pickBy(options));
