@@ -49,7 +49,7 @@ class OneDriveClient {
         .then(data => data.id);
     }
 
-    getAccountInfo({ fields = [], }) {
+    getAccountInfo(fields = []) {
         return this.graphApi.request(`${ROOT_URL}/me${fields.length ? `?$select=${fields.join(',')}` : ''}`)
             .catch(logErrorAndReject('Non-200 while trying to query microsoft account details', this.logger));
     }
