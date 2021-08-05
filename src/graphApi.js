@@ -12,12 +12,13 @@ class GraphAPI {
         this.logger = logger;
     }
 
-    request(url, method = 'get', data) {
+    request(url, method = 'get', data, axiosOptions = {}) {
         const doRequest = () => axios({
             method,
             url,
             data,
-            headers: { 'Authorization': `Bearer ${this.accessToken}` }
+            headers: { 'Authorization': `Bearer ${this.accessToken}` },
+            ...axiosOptions
         });
         return doRequest()
         .catch(e => {
