@@ -23,7 +23,9 @@ class GraphAPI {
         return doRequest()
         .catch(e => {
             const message = get(e, 'response.data.error.message');
-            if (message && message.match(/code: 80049228/i)) {
+            // if (message && message.match(/code: 80049228/i)) {
+
+            if (message) {
                 if (this.graphAuth) {
                     this.logger.info('Access token expired, trying to refresh');
                     return this.graphAuth.refresh(this.refreshToken)
