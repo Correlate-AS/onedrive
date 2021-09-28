@@ -122,7 +122,22 @@ class OneDriveClient {
         return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/root/children`)
             .catch(logErrorAndReject('Non-200 while searching drive', this.logger))
             .then(folder => folder.value);
+    }
 
+    /**
+     * @typedef UploadFileData
+     * @property {string} filename
+     * @property {ReadableStream} content - stream of a file's content
+     */
+
+    /**
+     * @param {UploadFileData} fileData
+     * @param {string=} parentId - parent's folder id
+     */
+    uploadFile(fileData, parentId = 'root') {
+        const url = ROOT_URL + `/me/drive/items/${parentId}:/${fileData.filename}:/content`;
+        return this.graphApi.request(url, 'put', fileData.content)
+            .catch(logErrorAndReject('Non-200 while trying to upload file', this.logger));
     }
 }
 
