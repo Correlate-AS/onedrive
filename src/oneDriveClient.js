@@ -1,6 +1,8 @@
 const { logErrorAndReject, formatDriveResponse } = require('./util.js');
 const _ = require('lodash');
 const querystring = require('querystring');
+const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
+const { validateAndDefaultTo } = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -132,10 +134,14 @@ class OneDriveClient {
 
     /**
      * @param {UploadFileData} fileData
-     * @param {string=} parentId - parent's folder id
+     * @param {string=} parentId - Parent's folder id
+     * @param {string=} conflictResolutionMode - Available modes: fail, replace, or rename. {@link https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_put_content?view=odsp-graph-online#conflict-resolution-behavior See docs for more details}
      */
-    uploadFile(fileData, parentId = 'root') {
-        const url = ROOT_URL + `/me/drive/items/${parentId}:/${fileData.filename}:/content`;
+    uploadFile(fileData, parentId , conflictResolutionMode ) {
+        conflictResolutionMode = validateAndDefaultTo(conflictResolutionMode, UPLOAD_CONFLICT_RESOLUTION_MODES, UPLOAD_CONFLICT_RESOLUTION_MODES.RENAME);
+        parentId = _.defaultTo(parentId, 'root');
+
+        const url = ROOT_URL + `/me/drive/items/${parentId}:/${fileData.filename}:/content?@microsoft.graph.conflictBehavior=${conflictResolutionMode}`;
         return this.graphApi.request(url, 'put', fileData.content)
             .catch(logErrorAndReject('Non-200 while trying to upload file', this.logger));
     }

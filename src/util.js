@@ -36,8 +36,21 @@ const DEFAULT_SCOPES = [
     'files.readwrite'
 ];
 
+function equalsToOneOfValues(value, constantsObj) {
+    const keys = Object.values(constantsObj);
+    return keys.includes(value);
+}
+
+function validateAndDefaultTo(value, constantsObj, defaultValue) {
+    if (!equalsToOneOfValues(value, constantsObj)) {
+        return defaultValue;
+    }
+}
+
 module.exports = {
     logErrorAndReject,
     formatDriveResponse,
-    DEFAULT_SCOPES
+    DEFAULT_SCOPES,
+    equalsToOneOfValues,
+    validateAndDefaultTo,
 };
