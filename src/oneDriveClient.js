@@ -1,8 +1,8 @@
-const { logErrorAndReject, formatDriveResponse } = require('./util.js');
+const { addDays } = require('date-fns');
 const _ = require('lodash');
 const querystring = require('querystring');
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
-const { validateAndDefaultTo } = require("./util");
+const { logErrorAndReject, formatDriveResponse, validateAndDefaultTo } = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -144,6 +144,50 @@ class OneDriveClient {
         const url = ROOT_URL + `/me/drive/items/${parentId}:/${fileData.filename}:/content?@microsoft.graph.conflictBehavior=${conflictResolutionMode}`;
         return this.graphApi.request(url, 'put', fileData.content)
             .catch(logErrorAndReject('Non-200 while trying to upload file', this.logger));
+    }
+
+    getLastCursor() {
+        return this.graphApi.request(`${ROOT_URL}/me/drive/root/delta?token=latest`)
+            .catch(logErrorAndReject('Non-200 while trying to get last cursor', this.logger))
+            .then(response => {
+                const deltaLink = response['@odata.deltaLink'];
+
+                const regex = new RegExp(/^.*token=(.*?)((&.*|$))/);
+                const tokenValue = deltaLink.replace(regex, '$1');
+
+                return tokenValue;
+            });
+    }
+
+
+    /**
+     * @typedef SubscriptionPayload
+     * @property {string}   [changeType='update']       Indicates the type of change that generated the notification. For OneDrive, this will always be 'updated'
+     * @property {string}   notificationUrl             Webhook handler endpoint URL
+     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscibe on
+     * @property {Date}     [expirationDateTime]        The date and time when the subscription will expire if not updated or renewed (can only be 43200 minutes in the future)
+     * @property {string}   [clientState='']            An optional string value that is passed back in the notification message for this subscription.
+     */
+
+    /**
+     * @param {SubscriptionPayload} payload
+     */
+    createSubscription(payload) {
+        if (!payload.notificationUrl) {
+            throw new Error('There was no webhook handler endpoint provided');
+        }
+
+        const defaultPaylaod = {
+            changeType: 'updated',
+            resource: 'me/drive/root',
+            expirationDateTime: addDays(new Date(), 30), // 43200 / 60 / 24 = 30 days
+            clientState: '',
+        };
+
+        const fullPayload = { ...defaultPaylaod, ...payload };
+
+        return this.graphApi.request(`${ROOT_URL}/subscriptions`, 'post', fullPayload)
+            .catch(logErrorAndReject('Non-200 while trying to create subscription', this.logger));
     }
 }
 
