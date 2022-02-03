@@ -146,6 +146,9 @@ class OneDriveClient {
             .catch(logErrorAndReject('Non-200 while trying to upload file', this.logger));
     }
 
+    /**
+     * Returns last cursor of root
+     */
     getLastCursor() {
         return this.graphApi.request(`${ROOT_URL}/me/drive/root/delta?token=latest`)
             .catch(logErrorAndReject('Non-200 while trying to get last cursor', this.logger))
@@ -170,6 +173,7 @@ class OneDriveClient {
      */
 
     /**
+     * Creates subscription for folder
      * @param {SubscriptionPayload} payload
      */
     createSubscription(payload) {
