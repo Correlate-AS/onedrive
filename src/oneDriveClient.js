@@ -2,7 +2,12 @@ const { addDays } = require('date-fns');
 const _ = require('lodash');
 const querystring = require('querystring');
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
-const { logErrorAndReject, formatDriveResponse, validateAndDefaultTo } = require("./util");
+const {
+    logErrorAndReject,
+    formatDriveResponse,
+    validateAndDefaultTo,
+    getParamValue,
+} = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -147,19 +152,39 @@ class OneDriveClient {
     }
 
     /**
-     * Returns last cursor of root
+     * Returns last cursor of root (recursively - includes state of inner folders)
      */
     getLastCursor() {
-        return this.graphApi.request(`${ROOT_URL}/me/drive/root/delta?token=latest`)
-            .catch(logErrorAndReject('Non-200 while trying to get last cursor', this.logger))
-            .then(response => {
-                const deltaLink = response['@odata.deltaLink'];
+        return this.graphApi
+          .request(`${ROOT_URL}/me/drive/root/delta?token=latest`)
+          .catch(
+            logErrorAndReject(
+              "Non-200 while trying to get last cursor",
+              this.logger
+            )
+          )
+          .then((response) =>
+            getParamValue(response["@odata.deltaLink"], "token")
+          );
+    }
 
-                const regex = new RegExp(/^.*token=(.*?)((&.*|$))/);
-                const tokenValue = deltaLink.replace(regex, '$1');
-
-                return tokenValue;
-            });
+    /**
+     * Returns changes performed after the state of provided cursor
+     * @param {string} cursor Cursor, which you want to get changes starting from
+     */
+    getChangesFrom(cursor) {
+        return this.graphApi
+          .request(`${ROOT_URL}/me/drive/root/delta(token='${cursor}')`)
+          .catch(
+            logErrorAndReject(
+              `Non-200 while trying to get changes from cursor ${cursor}`,
+              this.logger
+            )
+          )
+          .then((response) => ({
+            ...response,
+            cursor: getParamValue(response["@odata.deltaLink"], "token"),
+          }));
     }
 
 
