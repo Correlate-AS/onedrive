@@ -189,7 +189,7 @@ class OneDriveClient {
 
 
     /**
-     * @typedef SubscriptionPayload
+     * @typedef CreateSubscriptionPayload
      * @property {string}   [changeType='update']       Indicates the type of change that generated the notification. For OneDrive, this will always be 'updated'
      * @property {string}   notificationUrl             Webhook handler endpoint URL
      * @property {string}   [resource='me/drive/root']  Folder URL, which we subscibe on
@@ -199,7 +199,7 @@ class OneDriveClient {
 
     /**
      * Creates subscription for folder
-     * @param {SubscriptionPayload} payload
+     * @param {CreateSubscriptionPayload} payload
      */
     createSubscription(payload) {
         if (!payload.notificationUrl) {
@@ -217,6 +217,21 @@ class OneDriveClient {
 
         return this.graphApi.request(`${ROOT_URL}/subscriptions`, 'post', fullPayload)
             .catch(logErrorAndReject('Non-200 while trying to create subscription', this.logger));
+    }
+
+    /**
+     * @typedef UpdateSubscriptionPayload
+     * @property {Date} expirationDateTime Date, which subcription expires on (not more than 43200 hours = 30 days)
+     */
+
+    /**
+     * Update subscription by id
+     * @param {string} subscriptionId ID of subscription, which has to be updated
+     * @param {UpdateSubscriptionPayload} payload New data for subscription
+     */
+     updateSubscription(subscriptionId, payload) {
+        return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'patch', payload)
+            .catch(logErrorAndReject(`Non-200 while trying to update subscription ${subscriptionId}`, this.logger));
     }
 }
 
