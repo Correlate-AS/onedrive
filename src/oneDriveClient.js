@@ -233,6 +233,16 @@ class OneDriveClient {
         return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'patch', payload)
             .catch(logErrorAndReject(`Non-200 while trying to update subscription ${subscriptionId}`, this.logger));
     }
+
+    /**
+     * Delete subscription by id
+     * @param {string} subscriptionId ID of subscription, which has to be updated
+     */
+    deleteSubscription(subscriptionId) {
+        return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'delete')
+            .catch(logErrorAndReject(`Non-200 while trying to delete subscription ${subscriptionId}`, this.logger));
+    }
+
 }
 
 module.exports = OneDriveClient;
