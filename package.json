@@ -1,6 +1,6 @@
 {
   "name": "onedrive",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "main": "src/index.js",
   "repository": "git@github.com:correlateteam/onedrive.git",
   "author": "Norbert Kéri <norbert@correlate.com>",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "axios": "^0.21.2",
+    "date-fns": "^2.28.0",
     "lodash": "^4.17.21"
   }
 }

@@ -1,8 +1,13 @@
-const { logErrorAndReject, formatDriveResponse } = require('./util.js');
+const { addDays } = require('date-fns');
 const _ = require('lodash');
 const querystring = require('querystring');
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
-const { validateAndDefaultTo } = require("./util");
+const {
+    logErrorAndReject,
+    formatDriveResponse,
+    validateAndDefaultTo,
+    getParamValue,
+} = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -145,6 +150,99 @@ class OneDriveClient {
         return this.graphApi.request(url, 'put', fileData.content)
             .catch(logErrorAndReject('Non-200 while trying to upload file', this.logger));
     }
+
+    /**
+     * Returns last cursor of root (recursively - includes state of inner folders)
+     */
+    getLastCursor() {
+        return this.graphApi
+          .request(`${ROOT_URL}/me/drive/root/delta?token=latest`)
+          .catch(
+            logErrorAndReject(
+              "Non-200 while trying to get last cursor",
+              this.logger
+            )
+          )
+          .then((response) =>
+            getParamValue(response["@odata.deltaLink"], "token")
+          );
+    }
+
+    /**
+     * Returns changes performed after the state of provided cursor
+     * @param {string} cursor Cursor, which you want to get changes starting from
+     */
+    getChangesFrom(cursor) {
+        return this.graphApi
+          .request(`${ROOT_URL}/me/drive/root/delta(token='${cursor}')`)
+          .catch(
+            logErrorAndReject(
+              `Non-200 while trying to get changes from cursor ${cursor}`,
+              this.logger
+            )
+          )
+          .then((response) => ({
+            ...response,
+            cursor: getParamValue(response["@odata.deltaLink"], "token"),
+          }));
+    }
+
+
+    /**
+     * @typedef CreateSubscriptionPayload
+     * @property {string}   [changeType='update']       Indicates the type of change that generated the notification. For OneDrive, this will always be 'updated'
+     * @property {string}   notificationUrl             Webhook handler endpoint URL
+     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscibe on
+     * @property {Date}     [expirationDateTime]        The date and time when the subscription will expire if not updated or renewed (can only be 43200 minutes in the future)
+     * @property {string}   [clientState='']            An optional string value that is passed back in the notification message for this subscription.
+     */
+
+    /**
+     * Creates subscription for folder
+     * @param {CreateSubscriptionPayload} payload
+     */
+    createSubscription(payload) {
+        if (!payload.notificationUrl) {
+            throw new Error('There was no webhook handler endpoint provided');
+        }
+
+        const defaultPaylaod = {
+            changeType: 'updated',
+            resource: 'me/drive/root',
+            expirationDateTime: addDays(new Date(), 30), // 43200 / 60 / 24 = 30 days
+            clientState: '',
+        };
+
+        const fullPayload = { ...defaultPaylaod, ...payload };
+
+        return this.graphApi.request(`${ROOT_URL}/subscriptions`, 'post', fullPayload)
+            .catch(logErrorAndReject('Non-200 while trying to create subscription', this.logger));
+    }
+
+    /**
+     * @typedef UpdateSubscriptionPayload
+     * @property {Date} expirationDateTime Date, which subcription expires on (not more than 43200 hours = 30 days)
+     */
+
+    /**
+     * Update subscription by id
+     * @param {string} subscriptionId ID of subscription, which has to be updated
+     * @param {UpdateSubscriptionPayload} payload New data for subscription
+     */
+     updateSubscription(subscriptionId, payload) {
+        return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'patch', payload)
+            .catch(logErrorAndReject(`Non-200 while trying to update subscription ${subscriptionId}`, this.logger));
+    }
+
+    /**
+     * Delete subscription by id
+     * @param {string} subscriptionId ID of subscription, which has to be updated
+     */
+    deleteSubscription(subscriptionId) {
+        return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'delete')
+            .catch(logErrorAndReject(`Non-200 while trying to delete subscription ${subscriptionId}`, this.logger));
+    }
+
 }
 
 module.exports = OneDriveClient;
