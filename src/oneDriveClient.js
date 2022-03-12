@@ -87,7 +87,10 @@ class OneDriveClient {
             return {
                 name: data.name,
                 webUrl: data.webUrl,
-                packageType: data.package ? data.package.type : ''
+                packageType: data.package ? data.package.type : '',
+                parentReference: {
+                    path: data.parentReference.path,
+                },
             }
         });
     }
