@@ -58,7 +58,7 @@ class OneDriveClient {
                 const permission = data.value.find(d => {
                     // unshare for public link
                     if (!email) {
-                        return !!d.link;
+                        return _.has(d, 'link.type') && !_.has(d, 'invitation');
                     }
 
                     // unshare for email
