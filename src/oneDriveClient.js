@@ -51,10 +51,12 @@ class OneDriveClient {
             .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
             .then(data => {
                 const permission = data.value.find(d => {
+                    // unshare for public link
                     if (!email) {
                         return !!d.link;
                     }
 
+                    // unshare for email
                     return d.invitation && d.invitation.email === email
                 })
                 if (permission) {
