@@ -47,10 +47,23 @@ function validateAndDefaultTo(value, constantsObj, defaultValue) {
     }
 }
 
+/**
+ * Gets param value from url
+ * @param {string} url Some url
+ * @param {string} paramName Param key, which value you want to get
+ */
+function getParamValue(url, paramName) {
+    const regex = new RegExp(`^.*${paramName}=(.*?)((&.*|$))`);
+    const tokenValue = url.replace(regex, '$1');
+
+    return tokenValue;
+}
+
 module.exports = {
     logErrorAndReject,
     formatDriveResponse,
     DEFAULT_SCOPES,
     equalsToOneOfValues,
     validateAndDefaultTo,
+    getParamValue,
 };
