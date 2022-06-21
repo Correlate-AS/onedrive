@@ -50,8 +50,11 @@ class OneDriveClient {
         return this.graphApi.request(permissionUrl)
             .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
             .then(data => {
-                console.log('---------> data', JSON.stringify(data, null, 2))
                 const permission = data.value.find(d => {
+                    if (!email) {
+                        return !!d.link;
+                    }
+
                     return d.invitation && d.invitation.email === email
                 })
                 if (permission) {
