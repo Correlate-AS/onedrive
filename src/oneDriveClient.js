@@ -39,7 +39,6 @@ class OneDriveClient {
             message: "File shared through Correlate"
         })
         .catch(logErrorAndReject('Non-200 while trying to share file', this.logger))
-        .then(() => true);
     }
 
     shareForAnyone(fileId, driveId) {
@@ -50,28 +49,11 @@ class OneDriveClient {
         .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
     }
 
-    unshareFrom(fileId, driveId, email) {
+    unshareFrom(fileId, driveId, permissionId) {
         const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
-        return this.graphApi.request(permissionUrl)
-            .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
-            .then(data => {
-                const permission = data.value.find(d => {
-                    // unshare for public link
-                    if (!email) {
-                        return _.has(d, 'link.type') && !_.has(d, 'invitation');
-                    }
 
-                    // unshare for email
-                    return d.invitation && d.invitation.email === email
-                })
-                if (permission) {
-                    return this.graphApi.request(`${permissionUrl}/${permission.id}`, "DELETE")
-                    .catch(logErrorAndReject('Non-200 while removing permission', this.logger))
-                    .then(() => {});
-                }
-                this.logger.error("Could not revoke permission from file", { fileId, email });
-                return Promise.reject(new Error("Could not revoke permission from file"));
-            });
+        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
+            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
 
     getAccountId() {
