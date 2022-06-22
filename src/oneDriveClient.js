@@ -10,6 +10,10 @@ const {
 } = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
+const PERMISSION_TYPES = {
+    'USER': 'user',
+    'ANYONE': 'anyone',
+};
 
 class OneDriveClient {
 
@@ -19,6 +23,12 @@ class OneDriveClient {
     }
 
     shareTo(fileId, driveId, email) {
+        return email
+            ? this.shareForEmail(fileId, driveId, email)
+            : this.shareForAnyone(fileId, driveId)
+    }
+
+    shareForEmail(fileId, driveId, email) {
         return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
             requireSignin: true,
             sendInvitation: false,
@@ -32,12 +42,26 @@ class OneDriveClient {
         .then(() => true);
     }
 
+    shareForAnyone(fileId, driveId) {
+        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/createLink`, 'POST', {
+            "type": "view",
+            "scope": "anonymous"
+          })
+        .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
+    }
+
     unshareFrom(fileId, driveId, email) {
         const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
         return this.graphApi.request(permissionUrl)
             .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
             .then(data => {
                 const permission = data.value.find(d => {
+                    // unshare for public link
+                    if (!email) {
+                        return _.has(d, 'link.type') && !_.has(d, 'invitation');
+                    }
+
+                    // unshare for email
                     return d.invitation && d.invitation.email === email
                 })
                 if (permission) {
