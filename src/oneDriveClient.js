@@ -95,14 +95,14 @@ class OneDriveClient {
         parentId = parentId || 'root';
         this.logger.info('Querying OneDrive files', { folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/drive/items/${parentId}/children?${qs}`)
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children?${qs}`)
             .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
             .then(formatDriveResponse);
     }
 
     getFileById(fileId) {
         this.logger.info('Getting OneDrive file', { fileId });
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/drive/items/${fileId}`)
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}`)
         .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
         .then(data => {
             return {
