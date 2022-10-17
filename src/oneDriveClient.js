@@ -1,6 +1,6 @@
 const { addDays } = require('date-fns');
 const _ = require('lodash');
-const querystring = require('querystring');
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
 const {
     logErrorAndReject,
@@ -56,10 +56,23 @@ class OneDriveClient {
             .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
 
+    /**
+     * @deprecated
+     * Use getDriveInfo
+     */
     getAccountId() {
         return this.graphApi.request('https://graph.microsoft.com/v1.0/me/drive/')
-        .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger))
-        .then(data => data.id);
+            .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger))
+            .then(data => data.id);
+    }
+
+    getDriveInfo(fields = []) {
+        const qs = fields.length
+            ? querystring.stringify({ '$select': fields.join(',') })
+            : '';
+
+        return this.graphApi.request(`${ROOT_URL}/me/drive?${qs}`)
+            .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger));
     }
 
     getAccountInfo(fields = []) {
