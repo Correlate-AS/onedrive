@@ -116,14 +116,20 @@ class OneDriveClient {
             });
     }
 
-    createFolder(folderName, parentId = rootFolderId) {
+    createFolder(folderName, parentId = rootFolderId, autorename = true) {
         parentId = parentId || rootFolderId; // there can be gotten parentId = '', which causes invalid api url
-        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children`
-        return this.graphApi.request(url, 'post', {
+        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children`;
+
+        const body = {
             name: folderName,
             folder: { },
-            "@microsoft.graph.conflictBehavior": "rename"
-        })
+        };
+
+        if (autorename) {
+            body["@microsoft.graph.conflictBehavior"] = "rename";
+        }
+
+        return this.graphApi.request(url, 'post', body)
             .catch(logErrorAndReject('Non-200 while trying to create folder', this.logger))
             .then(data => {
                 return data.id
