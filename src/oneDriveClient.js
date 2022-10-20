@@ -125,8 +125,11 @@ class OneDriveClient {
             folder: { },
         };
 
+        const autorenameField = '@microsoft.graph.conflictBehavior';
         if (autorename) {
-            body["@microsoft.graph.conflictBehavior"] = "rename";
+            body[autorenameField] = "rename";
+        } else {
+            body[autorenameField] = "fail";
         }
 
         return this.graphApi.request(url, 'post', body)
