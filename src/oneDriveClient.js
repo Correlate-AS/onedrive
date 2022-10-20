@@ -15,6 +15,7 @@ const PERMISSION_TYPES = {
     'ANYONE': 'anyone',
 };
 
+const rootFolderId = 'root';
 class OneDriveClient {
 
     constructor(graphApi, logger) {
@@ -115,8 +116,9 @@ class OneDriveClient {
             });
     }
 
-    createFolder(folderName, rootFolder = 'root') {
-        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${rootFolder}/children`
+    createFolder(folderName, parentId = rootFolderId) {
+        parentId = parentId || rootFolderId; // there can be gotten parentId = '', which causes invalid api url
+        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children`
         return this.graphApi.request(url, 'post', {
             name: folderName,
             folder: { },
@@ -201,7 +203,7 @@ class OneDriveClient {
      * @typedef CreateSubscriptionPayload
      * @property {string}   [changeType='update']       Indicates the type of change that generated the notification. For OneDrive, this will always be 'updated'
      * @property {string}   notificationUrl             Webhook handler endpoint URL
-     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscibe on
+     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscribe on
      * @property {Date}     [expirationDateTime]        The date and time when the subscription will expire if not updated or renewed (can only be 43200 minutes in the future)
      * @property {string}   [clientState='']            An optional string value that is passed back in the notification message for this subscription.
      */
@@ -215,14 +217,14 @@ class OneDriveClient {
             throw new Error('There was no webhook handler endpoint provided');
         }
 
-        const defaultPaylaod = {
+        const defaultPayload = {
             changeType: 'updated',
             resource: 'me/drive/root',
             expirationDateTime: addDays(new Date(), 30), // 43200 / 60 / 24 = 30 days
             clientState: '',
         };
 
-        const fullPayload = { ...defaultPaylaod, ...payload };
+        const fullPayload = { ...defaultPayload, ...payload };
 
         return this.graphApi.request(`${ROOT_URL}/subscriptions`, 'post', fullPayload)
             .catch(logErrorAndReject('Non-200 while trying to create subscription', this.logger));
@@ -230,7 +232,7 @@ class OneDriveClient {
 
     /**
      * @typedef UpdateSubscriptionPayload
-     * @property {Date} expirationDateTime Date, which subcription expires on (not more than 43200 hours = 30 days)
+     * @property {Date} expirationDateTime Date, which subscription expires on (not more than 43200 hours = 30 days)
      */
 
     /**
