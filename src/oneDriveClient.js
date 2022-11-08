@@ -10,10 +10,6 @@ const {
 } = require("./util");
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
-const PERMISSION_TYPES = {
-    'USER': 'user',
-    'ANYONE': 'anyone',
-};
 
 const rootFolderId = 'root';
 class OneDriveClient {
