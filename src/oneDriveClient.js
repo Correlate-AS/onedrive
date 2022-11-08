@@ -115,6 +115,13 @@ class OneDriveClient {
         });
     }
 
+    getFilePermissions(fileId) {
+        this.logger.info('Getting OneDrive file permissions', { fileId });
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/permissions`)
+            .catch(logErrorAndReject(`Non-200 while querying file permissions ${fileId}`, this.logger))
+            .then(data => data.value);
+    }
+
     getPublicUrl(fileId) {
         return this.getFileById(fileId)
             .then(file => file.webUrl);
