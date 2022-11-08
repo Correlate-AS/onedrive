@@ -1,6 +1,6 @@
 const { addDays } = require('date-fns');
 const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
 const {
     logErrorAndReject,
@@ -152,8 +152,10 @@ class OneDriveClient {
             });
     }
 
-    createFileAndPopulate(fileName, content, folderId = '') {
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${folderId}:/${fileName}.docx:/content`, 'put', content)
+    createFileAndPopulate(fileName, content, folderId = '', useDocx = true) {
+        const ext = useDocx ? 'docx' : 'doc';
+
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${folderId}:/${fileName}.${ext}:/content`, 'put', content)
             .catch(logErrorAndReject('Non-200 while trying to create file with content', this.logger))
             .then(data => data.id);
     }
