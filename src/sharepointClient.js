@@ -19,15 +19,6 @@ class SharepointClient {
         this.logger = logger;
     }
 
-    getDriveInfo(fields = []) {
-        const qs = fields.length
-            ? querystring.stringify({ '$select': fields.join(',') })
-            : '';
-
-        return this.graphApi.request(`${ROOT_URL}/sites/root/drive?${qs}`)
-            .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger));
-    }
-
     getAccountInfo(fields = []) {
         return this.graphApi.request(`${ROOT_URL}/me${fields.length ? `?$select=${fields.join(',')}` : ''}`)
             .catch(logErrorAndReject('Non-200 while trying to query microsoft account details', this.logger));
@@ -41,29 +32,20 @@ class SharepointClient {
         parentId = parentId || rootFolderId;
         siteId = siteId || rootFolderId;
 
-        this.logger.info('Querying Sharepoint files', { folder: parentId });
+        this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
         return this.graphApi.request(`${ROOT_URL}/sites/${siteId}/drive/items/${parentId}/children?${qs}`)
             .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
             .then(formatDriveResponse);
     }
 
-    getPreview(fileId) {
+    getPreview(siteId, fileId) {
+        siteId = siteId || rootFolderId;
+        
         this.logger.info('Getting Sharepoint file preview', { fileId });
-        return this.graphApi.request(`${ROOT_URL}/sites/root/drive/items/${fileId}/thumbnails`)
+        return this.graphApi.request(`${ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`)
             .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-            .then(data => {
-                return  data.value;
-            });
-    }
-
-    searchFiles(query, options = {}) {
-        this.logger.info('Searching in Sharepoint', { query });
-        const qs = querystring.stringify(_.pickBy(options));
-
-        return this.graphApi.request(`${ROOT_URL}/sites/root/drive/root/search(q='${query}')?${qs}`)
-            .catch(logErrorAndReject('Non-200 while searching drive', this.logger))
-            .then(formatDriveResponse);
+            .then(data => data.value);
     }
 
     getSites() {
