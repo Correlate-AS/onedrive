@@ -8,6 +8,7 @@ const {
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 const rootFolderId = 'root';
+const SYSTEM_SITES = ['appcatalog'];
 
 // TODO: create base class for sharepoint and onedrive
 
@@ -70,6 +71,10 @@ class SharepointClient {
 
         return this.graphApi.request(`${ROOT_URL}/sites?search=`)
             .catch(logErrorAndReject('Non-200 while getting sites', this.logger))
+            .then(response => ({ // filter system sites
+                ...response,
+                value: response.value.filter(v => !SYSTEM_SITES.includes(v.name)),
+            }))
             .then(formatDriveResponse);
     }
 }
