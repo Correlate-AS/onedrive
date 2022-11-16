@@ -3,6 +3,12 @@ const GraphClient = require('./graphClient.js');
 const { logErrorAndReject } = require("./util");
 
 /**
+ * For some reason there are duplicates in search result if size is over 25.
+ * Option trimDuplicates = false makes no changes.
+ */
+const MAX_RESULTS = 25;
+
+/**
  * Microsoft Search API
  */
 
@@ -21,50 +27,102 @@ class SearchClient extends GraphClient {
      * @param {sting[]} [fields=[]] Fields of entity you search
      * @returns
      */
-    search(
-        query,
+    search({
+        query = '',
         sortProperties,
         entityTypes = ['driveItem'],
         fields = [],
-        from,
-        size
-    ) {
-        this.logger.info('Searching in Microsoft account', {
-            query,
-            entityTypes,
-        });
-        const qs = fields.length
-            ? querystring.stringify({
-                $select: fields.join(','),
-            })
-            : '';
-
-        const requestData = {
+        cursor,
+        maxResults = MAX_RESULTS,
+    }) {
+        let requestData = {
             entityTypes,
             query: {
                 queryString: query || '',
             },
-            sortProperties,
-            from,
-            size,
+            sortProperties: parseSortProperties(sortProperties),
+            from: 0,
+            size: maxResults > MAX_RESULTS ? MAX_RESULTS : maxResults,
         };
 
-        for (const key in requestData) {
-            if (_.isNil(requestData[key])) {
-                delete requestData[key];
+        const decodedCursor = _decodeCursor(cursor);
+        if (decodedCursor) {
+            requestData = {
+                entityTypes,
+                query: requestData.query,
+                sortProperties: requestData.sortProperties,
+                ...decodedCursor,
             }
         }
+
+        this.logger.info('Searching in Microsoft account', { ...requestData });
+
+        requestData = _removeNilValues(requestData);
+
+        const qs = generateQueryParams({ fields });
 
         return this.graphApi
             .request(`${this.ROOT_URL}/search/query?${qs}`, 'post', {
                 requests: [requestData],
             })
             .catch(logErrorAndReject('Non-200 while searching', this.logger))
-            .then(response => ({
-                cursor: null, // TODO: create cursor by from and size
-                items: _.get(response, 'value[0].hitsContainers[0].hits', []).map(h => h.resource),
-            }));
+            .then((response) => formatResponse(requestData, response));
     }
+}
+
+function parseSortProperties(sortProperties) {
+    const sortings = sortProperties.split(', ');
+
+    return sortings.map(sorting => {
+        const values = sorting.split(' ');
+        
+        return {
+            name: values[0],
+            isDescending: values[1].toUpperCase() === 'DESC',
+        };
+    });
+}
+
+function generateQueryParams({ fields = [] }) {
+    const qs = fields.length
+        ? querystring.stringify({
+            $select: fields.join(','),
+        })
+        : '';
+
+    return qs;
+}
+
+function _removeNilValues(obj) {
+    const newObj = { ...obj };
+
+    for (const key in newObj) {
+        if (_.isNil(newObj[key])) {
+            delete newObj[key];
+        }
+    }
+
+    return newObj;
+}
+
+function _decodeCursor(cursor) {
+    return cursor ? JSON.parse(cursor) : null;
+}
+
+function _encodeCursor(data) {
+    return JSON.stringify(data)
+}
+
+function formatResponse(requestData, response) {
+    return {
+        cursor: _.get(response, 'value[0].hitsContainers[0].moreResultsAvailable')
+            ? _encodeCursor({ // next page
+                size: requestData.size,
+                from: requestData.from + requestData.size,
+            })
+            : null,
+        items: _.get(response, 'value[0].hitsContainers[0].hits', []).map(h => h.resource)
+    };
 }
 
 module.exports = SearchClient;
