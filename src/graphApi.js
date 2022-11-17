@@ -2,6 +2,9 @@ const axios = require('axios');
 const { get } = require('lodash');
 const { logErrorAndReject } = require('./util.js');
 
+/**
+ * @typedef {object} GraphAPI Graph API request handler
+ */
 class GraphAPI {
 
     constructor(accessToken, refreshToken, graphAuth, onRefresh, logger) {

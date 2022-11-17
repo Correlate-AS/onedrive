@@ -59,6 +59,24 @@ function getParamValue(url, paramName) {
     return tokenValue;
 }
 
+/**
+ * Removes `undefined` and `null` properties from object.
+ * Doesn't change input object.
+ * @param {object} obj 
+ * @returns {object}
+ */
+function removeNilValues(obj) {
+    const newObj = { ...obj };
+
+    for (const key in newObj) {
+        if (_.isNil(newObj[key])) {
+            delete newObj[key];
+        }
+    }
+
+    return newObj;
+}
+
 module.exports = {
     logErrorAndReject,
     formatDriveResponse,
@@ -66,4 +84,5 @@ module.exports = {
     equalsToOneOfValues,
     validateAndDefaultTo,
     getParamValue,
+    removeNilValues,
 };
