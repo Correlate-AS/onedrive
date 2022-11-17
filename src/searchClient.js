@@ -93,7 +93,7 @@ function _parseSortProperties(sortProperties = '') {
         
         return {
             name: values[0],
-            isDescending: values[1].toUpperCase() === 'DESC',
+            isDescending: (values[1] || '').toUpperCase() === 'DESC',
         };
     });
 }
@@ -146,21 +146,21 @@ function generateQueryParams({ fields = [] }) {
 }
 
 /**
- * Decodes cursor and returns data hidden in it
+ * Encodes cursor and returns data hidden in it
  * @param {string} cursor Base64 string
- * @returns {object} Decoded cursor
+ * @returns {object} Encoded cursor
  */
-function _decodeCursor(cursor) {
-    return cursor ? Buffer.from(cursor).toString('base64') : null;
+function _encodeCursor(cursor) {
+    return cursor ? Buffer.from(JSON.stringify(cursor)).toString('base64') : null;
 }
 
 /**
- * Encodes next page info into string
+ * Decodes next page info into string
  * @param {object} data Next page data
- * @returns {string} Encoded cursor
+ * @returns {string} Decoded cursor
  */
-function _encodeCursor(data) {
-    return Buffer.from(data, 'base64').toString('ascii');
+function _decodeCursor(data) {
+    return data && JSON.parse(Buffer.from((data), 'base64').toString('ascii'));
 }
 
 /**
