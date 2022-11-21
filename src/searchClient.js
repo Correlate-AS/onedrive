@@ -46,7 +46,7 @@ class SearchClient extends GraphClient {
         query,
         sortProperties,
         entityTypes = ['driveItem'],
-        fields = [],
+        fields,
         cursor,
         maxResults = MAX_RESULTS,
     }) {
@@ -58,16 +58,15 @@ class SearchClient extends GraphClient {
             sortProperties: _parseSortProperties(sortProperties),
             from: 0,
             size: maxResults > MAX_RESULTS ? MAX_RESULTS : maxResults,
+            fields,
         };
         requestData = _adjustPage(requestData, cursor);
         requestData = removeNilValues(requestData);
 
         this.logger.info('Searching in Microsoft account', { ...requestData });
 
-        const qs = generateQueryParams({ fields });
-
         return this.graphApi
-            .request(`${this.ROOT_URL}/search/query?${qs}`, 'post', { requests: [requestData] })
+            .request(`${this.ROOT_URL}/search/query`, 'post', { requests: [requestData] })
             .catch(logErrorAndReject('Non-200 while searching', this.logger))
             .then((response) => _formatResponse(requestData, response));
     }
@@ -126,23 +125,6 @@ function _adjustPage(requestData, cursor) {
         ...requestData,
         ...decodedCursor,
     };
-}
-
-/**
- * Generates query params
- * https://learn.microsoft.com/en-us/graph/query-parameters
- * @param {object} 
- * @param {string[]} [.fields]
- * @returns {string} Params, which can be appended to the request endpoint
- */
-function generateQueryParams({ fields = [] }) {
-    const qs = fields.length
-        ? querystring.stringify({
-            $select: fields.join(','),
-        })
-        : '';
-
-    return qs;
 }
 
 /**
