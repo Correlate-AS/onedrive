@@ -56,15 +56,15 @@ class SharepointClient extends BaseDriveClient {
             .then(formatDriveResponse);
     }
 
-    getFileById(siteId, fileId) {
+    getFileById(fileId, siteId) {
         siteId = siteId || rootFolderId;
 
         this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`);
     }
 
-    getPublicUrl(siteId, fileId) {
-        return this.getFileById(siteId, fileId)
+    getPublicUrl(fileId, siteId) {
+        return this.getFileById(fileId, siteId)
             .then(file => file.webUrl);
     }
 }

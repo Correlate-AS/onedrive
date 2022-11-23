@@ -99,7 +99,7 @@ class OneDriveClient extends BaseDriveClient {
             .then(file => file.webUrl);
     }
 
-    getPreview(_driveId, fileId) {
+    getPreview(fileId) {
         this.logger.info('Getting OneDrive file preview', { fileId });
         return super.getPreview(`${this.ROOT_URL}/me/drive/items/${fileId}/thumbnails`);
     }
