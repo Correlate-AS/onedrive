@@ -39,7 +39,7 @@ class SharepointClient {
             .then(formatDriveResponse);
     }
 
-    getPreview(siteId, fileId) {
+    getPreview(fileId, siteId) {
         siteId = siteId || rootFolderId;
         
         this.logger.info('Getting Sharepoint file preview', { fileId });
