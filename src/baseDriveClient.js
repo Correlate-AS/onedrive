@@ -26,9 +26,7 @@ class BaseDriveClient extends GraphClient {
                     name: data.name,
                     webUrl: data.webUrl,
                     packageType: data.package ? data.package.type : "",
-                    parentReference: {
-                        path: data.parentReference.path,
-                    },
+                    parentReference: data.parentReference,
                 };
             });
     }
