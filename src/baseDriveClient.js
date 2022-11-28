@@ -54,6 +54,13 @@ class BaseDriveClient extends GraphClient {
             });
     }
 
+    /**
+     * Shares drive item for email
+     * @param {string} endpoint Service specific endpoint
+     * @param {string} email
+     * @returns {Promise}
+     * @async
+     */
     shareForEmail(endpoint, email) {
         return this.graphApi.request(endpoint, 'POST', {
                 requireSignin: true,
@@ -67,6 +74,12 @@ class BaseDriveClient extends GraphClient {
             .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
     }
 
+    /**
+     * Unshares drive item for email
+     * @param {string} endpoint Service specific endpoint
+     * @returns {Promise}
+     * @async
+     */
     unshareFrom(endpoint) {
         return this.graphApi.request(endpoint, "DELETE")
             .catch(logErrorAndReject('Non-200 while removing permission', this.logger));

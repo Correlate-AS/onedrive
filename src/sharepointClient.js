@@ -75,7 +75,7 @@ class SharepointClient extends BaseDriveClient {
 
     unshareFrom(fileId, siteId, permissionId) {
         siteId = this._validateContainer(siteId);
-        return super.unshareFrom(`${ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
+        return super.unshareFrom(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
     }
 
     _validateContainer(containerId) {
