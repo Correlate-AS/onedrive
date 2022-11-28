@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const {
     logErrorAndReject,
     formatDriveResponse,
@@ -39,7 +39,7 @@ class SharepointClient extends BaseDriveClient {
 
     getPreview(fileId, siteId) {
         siteId = siteId || rootFolderId;
-        
+
         this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
         return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
     }
@@ -66,6 +66,14 @@ class SharepointClient extends BaseDriveClient {
     getPublicUrl(fileId, siteId) {
         return this.getFileById(fileId, siteId)
             .then(file => file.webUrl);
+    }
+
+    shareForEmail(fileId, siteId, email) {
+        return super.shareForEmail(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/invite`, email);
+    }
+
+    unshareFrom(fileId, siteId, permissionId) {
+        return super.unshareFrom(`${ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
     }
 }
 

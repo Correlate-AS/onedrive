@@ -1,4 +1,4 @@
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const GraphClient = require("./graphClient.js");
 const {
     logErrorAndReject,
@@ -18,8 +18,8 @@ class BaseDriveClient extends GraphClient {
 
     /**
      * Gets drive item by its id
-     * @param {*} endpoint 
-     * @param {*} options 
+     * @param {*} endpoint
+     * @param {*} options
      * @returns {Promise<driveItem>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
      * @async
      */
@@ -54,6 +54,24 @@ class BaseDriveClient extends GraphClient {
             });
     }
 
+    shareForEmail(endpoint, email) {
+        return this.graphApi.request(endpoint, 'POST', {
+                requireSignin: true,
+                sendInvitation: false,
+                roles: ["read"],
+                recipients: [{
+                    email,
+                }],
+                message: "File shared through Correlate"
+            })
+            .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
+    }
+
+    unshareFrom(endpoint) {
+        return this.graphApi.request(endpoint, "DELETE")
+            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
+    }
+
     /**
      * Generates valid Onedrive and Sharepoint query options
      * https://learn.microsoft.com/en-us/graph/query-parameters
@@ -66,19 +84,16 @@ class BaseDriveClient extends GraphClient {
         const { fields = [], expand = [] } = options;
         let optionValid = [];
 
-        switch (true) {
-          /**
-           * Expand can affect `$select`, so it have to go first
-           */
-          case !!expand.length:
-            optionValid.push(
-              querystring.stringify({ $expand: expand.join(",") })
-            );
-          case !!fields.length:
-            // https://stackoverflow.com/a/44571731/13745132
-            optionValid.push(
-              querystring.stringify({ $select: [...fields, "id"].join(",") })
-            );
+        /**
+         * Expand can affect `$select`, so it have to go first
+         */
+        if (expand.length) {
+          optionValid.push(querystring.stringify({ $expand: expand.join(",") }));
+        }
+
+        if (fields.length) {
+          // https://stackoverflow.com/a/44571731/13745132
+          optionValid.push(querystring.stringify({ $select: [...fields, "id"].join(",") }) );
         }
 
         return optionValid.join("&");

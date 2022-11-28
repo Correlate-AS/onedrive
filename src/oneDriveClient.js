@@ -27,16 +27,7 @@ class OneDriveClient extends BaseDriveClient {
     }
 
     shareForEmail(fileId, driveId, email) {
-        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
-            requireSignin: true,
-            sendInvitation: false,
-            roles: ["read"],
-            recipients: [{
-                email
-            }],
-            message: "File shared through Correlate"
-        })
-        .catch(logErrorAndReject('Non-200 while trying to share file', this.logger))
+        return super.shareForEmail(`${this.ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, email);
     }
 
     shareForAnyone(fileId, driveId) {
@@ -48,10 +39,7 @@ class OneDriveClient extends BaseDriveClient {
     }
 
     unshareFrom(fileId, driveId, permissionId) {
-        const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
-
-        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
-            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
+        return super.unshareFrom(`${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions/${permissionId}`);
     }
 
     getAccountId() {
