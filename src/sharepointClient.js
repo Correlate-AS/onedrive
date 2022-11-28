@@ -27,8 +27,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFilesFrom(siteId, parentId, options = {}) {
-        parentId = parentId || rootFolderId;
-        siteId = siteId || rootFolderId;
+        parentId = this._validateContainer(parentId);
+        siteId = this._validateContainer(siteId);
 
         this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
@@ -38,7 +38,7 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getPreview(fileId, siteId) {
-        siteId = siteId || rootFolderId;
+        siteId = this._validateContainer(siteId);
 
         this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
         return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
@@ -57,7 +57,7 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFileById(fileId, siteId, options) {
-        siteId = siteId || rootFolderId;
+        siteId = this._validateContainer(siteId);
 
         this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`, options);
@@ -68,12 +68,18 @@ class SharepointClient extends BaseDriveClient {
             .then(file => file.webUrl);
     }
 
-    shareForEmail(fileId, siteId, email) {
+    shareTo(fileId, siteId, email) {
+        siteId = this._validateContainer(siteId);
         return super.shareForEmail(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/invite`, email);
     }
 
     unshareFrom(fileId, siteId, permissionId) {
+        siteId = this._validateContainer(siteId);
         return super.unshareFrom(`${ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
+    }
+
+    _validateContainer(containerId) {
+        return containerId || rootFolderId;
     }
 }
 
