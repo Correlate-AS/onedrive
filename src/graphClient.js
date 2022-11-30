@@ -3,7 +3,7 @@
  */
  class GraphClient {
     /**
-     * @param {GraphAPI} graphApi
+     * @param {GraphAPI} graphApi 
      * @param {object} [logger=console] Logs handler
      */
   constructor(graphApi, logger) {

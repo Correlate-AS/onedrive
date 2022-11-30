@@ -26,16 +26,17 @@ class OneDriveClient extends BaseDriveClient {
             : this.shareForAnyone(fileId, driveId)
     }
 
-    /**
-     * Shares drive item for email
-     * @param {string} fileId Drive item ID
-     * @param {string} driveId Drive ID, which contains item
-     * @param {string} email Email, which share to
-     * @returns {Promise}
-     * @async
-     */
     shareForEmail(fileId, driveId, email) {
-        return super.shareForEmail(`${this.ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, email);
+        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
+            requireSignin: true,
+            sendInvitation: false,
+            roles: ["read"],
+            recipients: [{
+                email
+            }],
+            message: "File shared through Correlate"
+        })
+        .catch(logErrorAndReject('Non-200 while trying to share file', this.logger))
     }
 
     shareForAnyone(fileId, driveId) {
@@ -46,16 +47,11 @@ class OneDriveClient extends BaseDriveClient {
         .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
     }
 
-    /**
-     * Unshares drive item for email
-     * @param {string} fileId Drive item ID
-     * @param {string} driveId Drive ID, which contains item
-     * @param {string} permissionId Permission ID, which allows sharing
-     * @returns {Promise}
-     * @async
-     */
     unshareFrom(fileId, driveId, permissionId) {
-        return super.unshareFrom(`${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions/${permissionId}`);
+        const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
+
+        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
+            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
 
     getAccountId() {

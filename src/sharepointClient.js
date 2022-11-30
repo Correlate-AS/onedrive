@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
 const {
     logErrorAndReject,
     formatDriveResponse,
@@ -27,8 +27,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFilesFrom(siteId, parentId, options = {}) {
-        parentId = this._validateContainer(parentId);
-        siteId = this._validateContainer(siteId);
+        parentId = parentId || rootFolderId;
+        siteId = siteId || rootFolderId;
 
         this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
@@ -38,8 +38,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getPreview(fileId, siteId) {
-        siteId = this._validateContainer(siteId);
-
+        siteId = siteId || rootFolderId;
+        
         this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
         return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
     }
@@ -57,7 +57,7 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFileById(fileId, siteId, options) {
-        siteId = this._validateContainer(siteId);
+        siteId = siteId || rootFolderId;
 
         this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`, options);
@@ -66,20 +66,6 @@ class SharepointClient extends BaseDriveClient {
     getPublicUrl(fileId, siteId) {
         return this.getFileById(fileId, siteId)
             .then(file => file.webUrl);
-    }
-
-    shareTo(fileId, siteId, email) {
-        siteId = this._validateContainer(siteId);
-        return super.shareForEmail(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/invite`, email);
-    }
-
-    unshareFrom(fileId, siteId, permissionId) {
-        siteId = this._validateContainer(siteId);
-        return super.unshareFrom(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
-    }
-
-    _validateContainer(containerId) {
-        return containerId || rootFolderId;
     }
 }
 
