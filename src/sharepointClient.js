@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const {
     logErrorAndReject,
     formatDriveResponse,
@@ -27,8 +27,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFilesFrom(siteId, parentId, options = {}) {
-        parentId = parentId || rootFolderId;
-        siteId = siteId || rootFolderId;
+        parentId = this._validateContainer(parentId);
+        siteId = this._validateContainer(siteId);
 
         this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
@@ -38,8 +38,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getPreview(fileId, siteId) {
-        siteId = siteId || rootFolderId;
-        
+        siteId = this._validateContainer(siteId);
+
         this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
         return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
     }
@@ -57,7 +57,7 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFileById(fileId, siteId, options) {
-        siteId = siteId || rootFolderId;
+        siteId = this._validateContainer(siteId);
 
         this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`, options);
@@ -66,6 +66,10 @@ class SharepointClient extends BaseDriveClient {
     getPublicUrl(fileId, siteId) {
         return this.getFileById(fileId, siteId)
             .then(file => file.webUrl);
+    }
+
+    _validateContainer(containerId) {
+        return containerId || rootFolderId;
     }
 }
 
