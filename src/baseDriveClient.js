@@ -18,8 +18,8 @@ class BaseDriveClient extends GraphClient {
 
     /**
      * Gets drive item by its id
-     * @param {*} endpoint
-     * @param {*} options
+     * @param {string} endpoint Service specific endpoint
+     * @param {object} options
      * @returns {Promise<driveItem>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
      * @async
      */
@@ -55,6 +55,60 @@ class BaseDriveClient extends GraphClient {
     }
 
     /**
+     * Creates sharing link of specified type if it does not already exist
+     * or returns sharing link if link of such a type already exists
+     * @param {string} endpoint Service specific endpoint https://learn.microsoft.com/en-us/graph/api/driveitem-createlink?view=graph-rest-1.0&tabs=http#http-request
+     * @returns {Promise<Permission>} https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    createSharingLink(endpoint) {
+        const body = {
+            type: 'view',
+            scope: 'users'
+        };
+
+        return this.graphApi.request(endpoint, 'post', body)
+            .catch(logErrorAndReject(`Non-200 while creating sharing link ${endpoint}`, this.logger));
+    }
+
+    /**
+     * Grants access to file, which is represented by link, for specified emails
+     * @param {string} link Link, which is related to file to be shared
+     * @param {string[]} emails Emails, which are going to get access to file
+     * @returns {Promise<Permission>} Graph API Permission but `grantedToIdentities` and `grantedToIdentitiesV2` can be not updated
+     * https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    grantAccessForLink(link, emails = []) {
+        this.logger.info(`Granting access for link`, { link, emails });
+
+        const encodedSharingUrl = this._encodeSharingUrl(link);
+        const endpoint = `${this.ROOT_URL}/shares/${encodedSharingUrl}/permission/grant`;
+        const body = {
+            recipients: emails.map(e => ({ email: e })),
+            roles: ['read'],
+        };
+
+        return this.graphApi.request(endpoint, 'post', body)
+            .catch(logErrorAndReject(`Non-200 while granting access for link ${link}`, this.logger))
+            .then(data => {
+                return data.value;
+            });
+    }
+
+    /**
+     * Deletes file's permission
+     * @param {string} endpoint Service specific endpoint https://learn.microsoft.com/en-us/graph/api/permission-delete?view=graph-rest-1.0&tabs=http#http-request
+     * @returns {Promise<undefined>}
+     * @async
+     */
+    deletePermissions(endpoint) {
+        return this.graphApi.request(endpoint, 'delete')
+            .catch(logErrorAndReject(`Non-200 while listing permissions ${endpoint}`, this.logger))
+            .then(() => {});
+    }
+
+    /**
      * Generates valid Onedrive and Sharepoint query options
      * https://learn.microsoft.com/en-us/graph/query-parameters
      * @param {object} options
@@ -79,6 +133,18 @@ class BaseDriveClient extends GraphClient {
         }
 
         return optionValid.join("&");
+    }
+
+    /**
+     * Generates encoded url, which is necessary for sharing API
+     * https://learn.microsoft.com/en-us/graph/api/shares-get?view=graph-rest-1.0&tabs=http#encoding-sharing-urls
+     * @param {string} url
+     * @returns {string}
+     */
+    _encodeSharingUrl(url) {
+        const encodedToBase64 = Buffer.from(url).toString('base64');
+        const encodedWithValidChars = encodedToBase64.replace(/=+$/,'').replace('/', '_').replace('+', '-');
+        return 'u!' + encodedWithValidChars;
     }
 
 }

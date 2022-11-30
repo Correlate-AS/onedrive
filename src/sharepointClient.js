@@ -68,6 +68,41 @@ class SharepointClient extends BaseDriveClient {
             .then(file => file.webUrl);
     }
 
+    /**
+     * Creates sharing link of specified type if it does not already exist
+     * or returns sharing link if link of such a type already exists
+     * @param {string} fileId Sharepoint drive item ID
+     * @param {string} siteId Sharepoint site ID
+     * @returns {Promise<Permission>} https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    createSharingLink(fileId, siteId) {
+        siteId = this._validateContainer(siteId);
+        this.logger.info(`Creating Sharepoint sharing link (or getting if it already exists)`, { siteId, fileId });
+
+        return super.createSharingLink(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/createLink`);
+    }
+
+    /**
+     * Deletes file's permission
+     * @param {string} permissionId Permission ID of Sharepoint drive item (item can have multiple permissions)
+     * @param {string} fileId Sharepoint drive item ID
+     * @param {string} siteId Sharepoint site ID
+     * @returns {Promise<undefined>}
+     * @async
+     */
+    deletePermission(permissionId, fileId, siteId) {
+        siteId = this._validateContainer(siteId);
+        this.logger.info(`Removing Sharepoint file permission`, { siteId, fileId, permissionId });
+
+        return super.deletePermissions(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
+    }
+
+    /**
+     * Returns provided containerId or if it falsy value - id of root container
+     * @param {string} containerId Container ID, where container can be drive, site, folder etc.
+     * @returns {string}
+     */
     _validateContainer(containerId) {
         return containerId || rootFolderId;
     }
