@@ -59,7 +59,7 @@ class OneDriveClient extends BaseDriveClient {
      * Unshares drive item for email
      * @param {string} fileId Drive item ID
      * @param {string} driveId Drive ID, which contains item
-     * @param {string} email Permission ID, which allows sharing
+     * @param {string} email
      * @returns {Promise}
      * @async
      */
