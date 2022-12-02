@@ -9,7 +9,16 @@ const {
     getParamValue,
 } = require("./util");
 
-const ROOT_URL = 'https://graph.microsoft.com/v1.0'
+const ROOT_URL = 'https://graph.microsoft.com/v1.0';
+
+/**
+ * There can be two types pf permission: user & link. Each has different fields.
+ * https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties * 
+ */
+const PERMISSION_FIELDS = {
+    USER: ['grantedToV2', 'invitation'], /** first - for business, second - for personal account */
+    LINK: ['grantedToIdentitiesV2', 'link'],
+};
 
 const rootFolderId = 'root';
 class OneDriveClient {
@@ -46,11 +55,28 @@ class OneDriveClient {
         .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
     }
 
-    unshareFrom(fileId, driveId, permissionId) {
+    unshareFrom(fileId, driveId, email) {
         const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
+        return this.graphApi.request(permissionUrl)
+            .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
+            .then(data => {
+                const permission = data.value.find(d => {
+                    // unshare for public link
+                    if (!email) {
+                        return this._isLinkTypePermission(d);
+                    }
 
-        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
-            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
+                    // unshare for email
+                    return this._isUserPermissionOf(email, d);
+                })
+                if (permission) {
+                    return this.graphApi.request(`${permissionUrl}/${permission.id}`, "DELETE")
+                    .catch(logErrorAndReject('Non-200 while removing permission', this.logger))
+                    .then(() => {});
+                }
+                this.logger.error("Could not revoke permission from file", { fileId, email });
+                return Promise.reject(new Error("Could not revoke permission from file"));
+            });
     }
 
     /**
@@ -279,6 +305,17 @@ class OneDriveClient {
     deleteSubscription(subscriptionId) {
         return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'delete')
             .catch(logErrorAndReject(`Non-200 while trying to delete subscription ${subscriptionId}`, this.logger));
+    }
+
+    _isLinkTypePermission(permission) {
+        return PERMISSION_FIELDS.LINK.every(f => _.has(permission, f));
+    }
+
+    _isUserPermissionOf(email, permission) {
+        const emails = [];
+        emails.push(PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.email`)));
+        emails.push(PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.user.email`)));
+        return emails.some(e => e === email);
     }
 
 }
