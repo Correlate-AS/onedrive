@@ -13,7 +13,8 @@ const ROOT_URL = 'https://graph.microsoft.com/v1.0';
 
 /**
  * There can be two types of permission: user & link. Each has different fields.
- * https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties *
+ * https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+ * https://stackoverflow.com/a/40232274/13745132
  */
 const PERMISSION_FIELDS = {
     USER: ['grantedToV2', 'invitation'], /** first - for business, second - for personal account */
