@@ -313,8 +313,8 @@ class OneDriveClient {
 
     _isUserPermissionOf(email, permission) {
         const emails = [];
-        emails.push(PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.email`)));
-        emails.push(PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.user.email`)));
+        emails.push(...PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.email`)));
+        emails.push(...PERMISSION_FIELDS.USER.map(f => _.get(permission, `${f}.user.email`)));
         return emails.some(e => e === email);
     }
 
