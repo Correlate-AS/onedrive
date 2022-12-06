@@ -64,8 +64,10 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getPublicUrl(fileId, siteId) {
-        return this.getFileById(fileId, siteId)
-            .then(file => file.webUrl);
+        this.logger.info(`Getting Sharepoint sharing link`, { siteId, fileId });
+
+        return this.createSharingLink(fileId, siteId)
+            .then(permission => permission.link.webUrl);
     }
 
     /**
