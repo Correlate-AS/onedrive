@@ -9,9 +9,9 @@ const {
     getParamValue,
 } = require("./util");
 
-const ROOT_URL = 'https://graph.microsoft.com/v1.0'
-
+const ROOT_URL = 'https://graph.microsoft.com/v1.0';
 const rootFolderId = 'root';
+
 class OneDriveClient {
 
     constructor(graphApi, logger) {
@@ -53,14 +53,8 @@ class OneDriveClient {
             .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
 
-    /**
-     * @deprecated
-     * Use getDriveInfo
-     */
     getAccountId() {
-        return this.graphApi.request('https://graph.microsoft.com/v1.0/me/drive/')
-            .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger))
-            .then(data => data.id);
+        return this.getDriveInfo().then(data => data.id);
     }
 
     getDriveInfo(fields = []) {
