@@ -8,15 +8,16 @@ const {
     validateAndDefaultTo,
     getParamValue,
 } = require("./util");
+const BaseDriveClient = require('./baseDriveClient');
+
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0';
 const rootFolderId = 'root';
 
-class OneDriveClient {
+class OneDriveClient extends BaseDriveClient {
 
     constructor(graphApi, logger) {
-        this.graphApi = graphApi;
-        this.logger = logger;
+        super(graphApi, logger);
     }
 
     shareTo(fileId, driveId, email) {
@@ -91,18 +92,7 @@ class OneDriveClient {
 
     getFileById(fileId) {
         this.logger.info('Getting OneDrive file', { fileId });
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}`)
-        .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-        .then(data => {
-            return {
-                name: data.name,
-                webUrl: data.webUrl,
-                packageType: data.package ? data.package.type : '',
-                parentReference: {
-                    path: data.parentReference.path,
-                },
-            }
-        });
+        return super.getFileById(`${this.ROOT_URL}/me/drive/items/${fileId}`);
     }
 
     getFilePermissions(fileId) {
@@ -119,11 +109,7 @@ class OneDriveClient {
 
     getPreview(fileId) {
         this.logger.info('Getting OneDrive file preview', { fileId });
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/thumbnails`)
-            .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-            .then(data => {
-                return  data.value;
-            });
+        return super.getPreview(`${this.ROOT_URL}/me/drive/items/${fileId}/thumbnails`);
     }
 
     createFolder(folderName, parentId = rootFolderId, autorename = true) {

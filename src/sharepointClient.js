@@ -1,22 +1,20 @@
-const { addDays } = require('date-fns');
 const _ = require('lodash');
 const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
 const {
     logErrorAndReject,
     formatDriveResponse,
 } = require("./util");
+const BaseDriveClient = require('./baseDriveClient');
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 const rootFolderId = 'root';
 const SYSTEM_SITES = ['appcatalog'];
 
-// TODO: create base class for sharepoint and onedrive
 
-class SharepointClient {
+class SharepointClient extends BaseDriveClient {
 
     constructor(graphApi, logger) {
-        this.graphApi = graphApi;
-        this.logger = logger;
+        super(graphApi, logger);
     }
 
     getAccountInfo(fields = []) {
@@ -42,10 +40,8 @@ class SharepointClient {
     getPreview(fileId, siteId) {
         siteId = siteId || rootFolderId;
         
-        this.logger.info('Getting Sharepoint file preview', { fileId });
-        return this.graphApi.request(`${ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`)
-            .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-            .then(data => data.value);
+        this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
+        return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
     }
 
     getSites() {
@@ -58,6 +54,18 @@ class SharepointClient {
                 value: response.value.filter(v => !SYSTEM_SITES.includes(v.name)),
             }))
             .then(formatDriveResponse);
+    }
+
+    getFileById(fileId, siteId) {
+        siteId = siteId || rootFolderId;
+
+        this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
+        return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`);
+    }
+
+    getPublicUrl(fileId, siteId) {
+        return this.getFileById(fileId, siteId)
+            .then(file => file.webUrl);
     }
 }
 
