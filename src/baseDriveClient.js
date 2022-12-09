@@ -1,4 +1,4 @@
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const GraphClient = require("./graphClient.js");
 const {
     logErrorAndReject,
@@ -18,8 +18,8 @@ class BaseDriveClient extends GraphClient {
 
     /**
      * Gets drive item by its id
-     * @param {*} endpoint 
-     * @param {*} options 
+     * @param {string} endpoint Service specific endpoint
+     * @param {object} options
      * @returns {Promise<driveItem>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
      * @async
      */
@@ -55,6 +55,60 @@ class BaseDriveClient extends GraphClient {
     }
 
     /**
+     * Creates sharing link of specified type if it does not already exist
+     * or returns sharing link if link of such a type already exists
+     * @param {string} endpoint Service specific endpoint https://learn.microsoft.com/en-us/graph/api/driveitem-createlink?view=graph-rest-1.0&tabs=http#http-request
+     * @returns {Promise<Permission>} https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    createSharingLink(endpoint) {
+        const body = {
+            type: 'view',
+            scope: 'users'
+        };
+
+        return this.graphApi.request(endpoint, 'post', body)
+            .catch(logErrorAndReject(`Non-200 while creating sharing link ${endpoint}`, this.logger));
+    }
+
+    /**
+     * Grants access to file, which is represented by link, for specified emails
+     * @param {string} link Link, which is related to file to be shared
+     * @param {string[]} emails Emails, which are going to get access to file
+     * @returns {Promise<Permission>} Graph API Permission but `grantedToIdentities` and `grantedToIdentitiesV2` can be not updated
+     * https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    grantAccessForLink(link, emails = []) {
+        this.logger.info(`Granting access for link`, { link, emails });
+
+        const encodedSharingUrl = this._encodeSharingUrl(link);
+        const endpoint = `${this.ROOT_URL}/shares/${encodedSharingUrl}/permission/grant`;
+        const body = {
+            recipients: emails.map(e => ({ email: e })),
+            roles: ['read'],
+        };
+
+        return this.graphApi.request(endpoint, 'post', body)
+            .catch(logErrorAndReject(`Non-200 while granting access for link ${link}`, this.logger))
+            .then(data => {
+                return data.value;
+            });
+    }
+
+    /**
+     * Deletes file's permission
+     * @param {string} endpoint Service specific endpoint https://learn.microsoft.com/en-us/graph/api/permission-delete?view=graph-rest-1.0&tabs=http#http-request
+     * @returns {Promise<undefined>}
+     * @async
+     */
+    deletePermissions(endpoint) {
+        return this.graphApi.request(endpoint, 'delete')
+            .catch(logErrorAndReject(`Non-200 while listing permissions ${endpoint}`, this.logger))
+            .then(() => {});
+    }
+
+    /**
      * Generates valid Onedrive and Sharepoint query options
      * https://learn.microsoft.com/en-us/graph/query-parameters
      * @param {object} options
@@ -66,23 +120,33 @@ class BaseDriveClient extends GraphClient {
         const { fields = [], expand = [] } = options;
         let optionValid = [];
 
-        switch (true) {
-          /**
-           * Expand can affect `$select`, so it have to go first
-           */
-          case !!expand.length:
-            optionValid.push(
-              querystring.stringify({ $expand: expand.join(",") })
-            );
-          case !!fields.length:
-            // https://stackoverflow.com/a/44571731/13745132
-            optionValid.push(
-              querystring.stringify({ $select: [...fields, "id"].join(",") })
-            );
+        /**
+         * Expand can affect `$select`, so it have to go first
+         */
+        if (expand.length) {
+          optionValid.push(querystring.stringify({ $expand: expand.join(",") }));
+        }
+
+        if (fields.length) {
+          // https://stackoverflow.com/a/44571731/13745132
+          optionValid.push(querystring.stringify({ $select: [...fields, "id"].join(",") }) );
         }
 
         return optionValid.join("&");
     }
+
+    /**
+     * Generates encoded url, which is necessary for sharing API
+     * https://learn.microsoft.com/en-us/graph/api/shares-get?view=graph-rest-1.0&tabs=http#encoding-sharing-urls
+     * @param {string} url
+     * @returns {string}
+     */
+    _encodeSharingUrl(url) {
+        const encodedToBase64 = Buffer.from(url).toString('base64');
+        const encodedWithValidChars = encodedToBase64.replace(/=+$/,'').replace('/', '_').replace('+', '-');
+        return 'u!' + encodedWithValidChars;
+    }
+
 }
 
 module.exports = BaseDriveClient;

@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18 
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const {
     logErrorAndReject,
     formatDriveResponse,
@@ -27,8 +27,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFilesFrom(siteId, parentId, options = {}) {
-        parentId = parentId || rootFolderId;
-        siteId = siteId || rootFolderId;
+        parentId = this._validateContainer(parentId);
+        siteId = this._validateContainer(siteId);
 
         this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
         const qs = querystring.stringify(_.pickBy(options));
@@ -38,8 +38,8 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getPreview(fileId, siteId) {
-        siteId = siteId || rootFolderId;
-        
+        siteId = this._validateContainer(siteId);
+
         this.logger.info('Getting Sharepoint file preview', { siteId, fileId });
         return super.getPreview(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/thumbnails`);
     }
@@ -57,15 +57,56 @@ class SharepointClient extends BaseDriveClient {
     }
 
     getFileById(fileId, siteId, options) {
-        siteId = siteId || rootFolderId;
+        siteId = this._validateContainer(siteId);
 
         this.logger.info(`Getting Sharepoint file`, { siteId, fileId });
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`, options);
     }
 
     getPublicUrl(fileId, siteId) {
-        return this.getFileById(fileId, siteId)
-            .then(file => file.webUrl);
+        this.logger.info(`Getting Sharepoint sharing link`, { siteId, fileId });
+
+        return this.createSharingLink(fileId, siteId)
+            .then(permission => permission.link.webUrl);
+    }
+
+    /**
+     * Creates sharing link of specified type if it does not already exist
+     * or returns sharing link if link of such a type already exists
+     * @param {string} fileId Sharepoint drive item ID
+     * @param {string} siteId Sharepoint site ID
+     * @returns {Promise<Permission>} https://learn.microsoft.com/en-us/graph/api/resources/permission?view=graph-rest-1.0#properties
+     * @async
+     */
+    createSharingLink(fileId, siteId) {
+        siteId = this._validateContainer(siteId);
+        this.logger.info(`Creating Sharepoint sharing link (or getting if it already exists)`, { siteId, fileId });
+
+        return super.createSharingLink(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/createLink`);
+    }
+
+    /**
+     * Deletes file's permission
+     * @param {string} permissionId Permission ID of Sharepoint drive item (item can have multiple permissions)
+     * @param {string} fileId Sharepoint drive item ID
+     * @param {string} siteId Sharepoint site ID
+     * @returns {Promise<undefined>}
+     * @async
+     */
+    deletePermission(permissionId, fileId, siteId) {
+        siteId = this._validateContainer(siteId);
+        this.logger.info(`Removing Sharepoint file permission`, { siteId, fileId, permissionId });
+
+        return super.deletePermissions(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
+    }
+
+    /**
+     * Returns provided containerId or if it falsy value - id of root container
+     * @param {string} containerId Container ID, where container can be drive, site, folder etc.
+     * @returns {string}
+     */
+    _validateContainer(containerId) {
+        return containerId || rootFolderId;
     }
 }
 

@@ -26,6 +26,14 @@ class OneDriveClient extends BaseDriveClient {
             : this.shareForAnyone(fileId, driveId)
     }
 
+    /**
+     * Shares drive item for email
+     * @param {string} fileId Drive item ID
+     * @param {string} driveId Drive ID, which contains item
+     * @param {string} email Email, which share to
+     * @returns {Promise}
+     * @async
+     */
     shareForEmail(fileId, driveId, email) {
         return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
             requireSignin: true,
@@ -47,11 +55,36 @@ class OneDriveClient extends BaseDriveClient {
         .catch(logErrorAndReject('Non-200 while trying to share file', this.logger));
     }
 
-    unshareFrom(fileId, driveId, permissionId) {
+    /**
+     * Unshares drive item for email
+     * @param {string} fileId Drive item ID
+     * @param {string} driveId Drive ID, which contains item
+     * @param {string} email
+     * @returns {Promise}
+     * @async
+     */
+     unshareFrom(fileId, driveId, email) {
         const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
+        return this.graphApi.request(permissionUrl)
+            .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
+            .then(data => {
+                const permission = data.value.find(d => {
+                    // unshare for public link
+                    if (!email) {
+                        return _.has(d, 'link.type') && !_.has(d, 'invitation');
+                    }
 
-        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
-            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
+                    // unshare for email
+                    return d.invitation && d.invitation.email === email
+                })
+                if (permission) {
+                    return this.graphApi.request(`${permissionUrl}/${permission.id}`, "DELETE")
+                    .catch(logErrorAndReject('Non-200 while removing permission', this.logger))
+                    .then(() => {});
+                }
+                this.logger.error("Could not revoke permission from file", { fileId, email });
+                return Promise.reject(new Error("Could not revoke permission from file"));
+            });
     }
 
     getAccountId() {
