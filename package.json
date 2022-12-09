@@ -1,6 +1,6 @@
 {
   "name": "onedrive",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "main": "src/index.js",
   "repository": "git@github.com:correlateteam/onedrive.git",
   "author": "Norbert Kéri <norbert@correlate.com>",
