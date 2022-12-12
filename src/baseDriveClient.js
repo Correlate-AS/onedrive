@@ -35,7 +35,7 @@ class BaseDriveClient extends GraphClient {
      * Gets drive item by its id
      * @param {string} endpoint Service specific endpoint
      * @param {object} options
-     * @returns {Promise<DriveItem>} v
+     * @returns {Promise<DriveItem>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
      * @async
      */
     getFileById(endpoint, options) {
