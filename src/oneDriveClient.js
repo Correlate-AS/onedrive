@@ -115,12 +115,9 @@ class OneDriveClient extends BaseDriveClient {
     }
 
     getFilesFrom(parentId, options = {}) {
-        parentId = parentId || 'root';
+        parentId = this._validateContainer(parentId);
         this.logger.info('Querying OneDrive files', { folder: parentId });
-        const qs = querystring.stringify(_.pickBy(options));
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children?${qs}`)
-            .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
-            .then(formatDriveResponse);
+        return super.getFilesFrom(`${this.ROOT_URL}/me/drive/items/${parentId}/children`, options);
     }
 
     getFileById(fileId) {

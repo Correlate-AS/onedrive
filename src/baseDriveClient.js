@@ -1,7 +1,9 @@
 const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
+const _ = require('lodash');
 const GraphClient = require("./graphClient.js");
 const {
     logErrorAndReject,
+    formatDriveResponse,
 } = require("./util");
 
 /**
@@ -17,10 +19,23 @@ class BaseDriveClient extends GraphClient {
     }
 
     /**
+     * Gets drive's items from root or specified folder
+     * @param {string} endpoint Service specific endpoint
+     * @param {object} options
+     * @returns {Promise<DriveItem[]>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
+     */
+    getFilesFrom(endpoint, options = {}) {
+        const queryOptions = querystring.stringify(_.pickBy(options));
+        return this.graphApi.request(`${endpoint}?${queryOptions}`)
+            .catch(logErrorAndReject(`Non-200 while querying folder: ${endpoint}`, this.logger))
+            .then(formatDriveResponse);
+    }
+
+    /**
      * Gets drive item by its id
      * @param {string} endpoint Service specific endpoint
      * @param {object} options
-     * @returns {Promise<driveItem>} https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#properties
+     * @returns {Promise<DriveItem>} v
      * @async
      */
     getFileById(endpoint, options) {
@@ -147,6 +162,14 @@ class BaseDriveClient extends GraphClient {
         return 'u!' + encodedWithValidChars;
     }
 
+    /**
+     * Returns provided containerId or if it falsy value - id of root container
+     * @param {string} containerId Container ID, where container can be drive, site, folder etc.
+     * @returns {string}
+     */
+    _validateContainer(containerId) {
+        return containerId || this.ROOT_FOLDER;
+    }
 }
 
 module.exports = BaseDriveClient;
