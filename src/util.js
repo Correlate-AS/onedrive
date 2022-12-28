@@ -24,12 +24,16 @@ const formatDriveResponse = data => {
     }
     return {
         cursor: skiptoken,
-        items: value.map(file => ({
-            ...file,
-            isFolder: !!file.folder,
-        }))
+        items: value.map(formatItemResponse),
     };
 };
+
+const formatItemResponse = item => {
+    return {
+        ...item,
+        isFolder: !!item.folder,
+    };
+}
 
 const DEFAULT_SCOPES = [
     'offline_access',

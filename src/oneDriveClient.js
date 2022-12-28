@@ -5,6 +5,7 @@ const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
 const {
     logErrorAndReject,
     formatDriveResponse,
+    formatItemResponse,
     validateAndDefaultTo,
     getParamValue,
 } = require("./util");
@@ -163,9 +164,7 @@ class OneDriveClient extends BaseDriveClient {
 
         return this.graphApi.request(url, 'post', body)
             .catch(logErrorAndReject('Non-200 while trying to create folder', this.logger))
-            .then(data => {
-                return data.id
-            });
+            .then(formatItemResponse);
     }
 
     createFileAndPopulate(fileName, content, folderId = '', useDocx = true) {
