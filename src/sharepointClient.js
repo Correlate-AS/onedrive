@@ -1,5 +1,3 @@
-const _ = require('lodash');
-const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const {
     logErrorAndReject,
     formatDriveResponse,
@@ -7,7 +5,6 @@ const {
 const BaseDriveClient = require('./baseDriveClient');
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0'
-const rootFolderId = 'root';
 const SYSTEM_SITES = ['appcatalog'];
 
 
@@ -26,15 +23,12 @@ class SharepointClient extends BaseDriveClient {
         return this.getAccountInfo().then(data => data.id);
     }
 
-    getFilesFrom(siteId, parentId, options = {}) {
+    getFilesFrom(parentId, options = {}, siteId) {
         parentId = this._validateContainer(parentId);
         siteId = this._validateContainer(siteId);
 
         this.logger.info('Querying Sharepoint files', { site: siteId, folder: parentId });
-        const qs = querystring.stringify(_.pickBy(options));
-        return this.graphApi.request(`${ROOT_URL}/sites/${siteId}/drive/items/${parentId}/children?${qs}`)
-            .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
-            .then(formatDriveResponse);
+        return super.getFilesFrom(`${this.ROOT_URL}/sites/${siteId}/drive/items/${parentId}/children`, options);
     }
 
     getPreview(fileId, siteId) {
@@ -98,15 +92,6 @@ class SharepointClient extends BaseDriveClient {
         this.logger.info(`Removing Sharepoint file permission`, { siteId, fileId, permissionId });
 
         return super.deletePermissions(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/permissions/${permissionId}`);
-    }
-
-    /**
-     * Returns provided containerId or if it falsy value - id of root container
-     * @param {string} containerId Container ID, where container can be drive, site, folder etc.
-     * @returns {string}
-     */
-    _validateContainer(containerId) {
-        return containerId || rootFolderId;
     }
 }
 
