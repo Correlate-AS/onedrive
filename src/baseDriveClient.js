@@ -55,6 +55,17 @@ class BaseDriveClient extends GraphClient {
             });
     }
 
+    getFileContent(endpoint, options, axiosOptions) {
+        this.logger.info(`Query options`, { options });
+        const queryOptions = querystring.stringify(options);
+
+        return this.graphApi
+            .request(`${endpoint}?${queryOptions}`, 'get', null, axiosOptions)
+            .catch(
+                logErrorAndReject(`Non-200 while querying file ${endpoint}`, this.logger)
+            );
+    }
+
     /**
      * Gets Preview data
      * @param {string} endpoint Service specific endpoint

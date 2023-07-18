@@ -126,6 +126,11 @@ class OneDriveClient extends BaseDriveClient {
         return super.getFileById(`${this.ROOT_URL}/me/drive/items/${fileId}`);
     }
 
+    getFileContent(fileId, _siteId, options, axiosOptions) {
+        this.logger.info(`Getting OneDrive file content`, { fileId });
+        return super.getFileContent(`${this.ROOT_URL}/drive/items/${fileId}/content`, options, axiosOptions);
+    }
+
     getFilePermissions(fileId) {
         this.logger.info('Getting OneDrive file permissions', { fileId });
         return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/permissions`)

@@ -57,6 +57,11 @@ class SharepointClient extends BaseDriveClient {
         return super.getFileById(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}`, options);
     }
 
+    getFileContent(fileId, siteId, options, axiosOptions) {
+        this.logger.info(`Getting OneDrive file content`, { fileId });
+        return super.getFileContent(`${this.ROOT_URL}/sites/${siteId}/drive/items/${fileId}/content`, options, axiosOptions);
+    }
+
     getPublicUrl(fileId, siteId) {
         this.logger.info(`Getting Sharepoint sharing link`, { siteId, fileId });
 
