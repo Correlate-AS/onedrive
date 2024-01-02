@@ -14,6 +14,10 @@ const BaseDriveClient = require('./baseDriveClient');
 
 const ROOT_URL = 'https://graph.microsoft.com/v1.0';
 const rootFolderId = 'root';
+const SHARING_IDENTIFICATOR = {
+    EMAIL: 'email',
+    PERMISSION: 'permission',
+};
 
 class OneDriveClient extends BaseDriveClient {
 
@@ -57,35 +61,24 @@ class OneDriveClient extends BaseDriveClient {
     }
 
     /**
-     * Unshares drive item for email
-     * @param {string} fileId Drive item ID
-     * @param {string} driveId Drive ID, which contains item
-     * @param {string} email
-     * @returns {Promise}
+     * Unshares file for other user(s) by identificator
      * @async
+     *
+     * @param {string} fileId File ID
+     * @param {string} driveId Drive ID
+     * @param {object} identificator Identificator of sharing
+     * @param {string} identificator.value Identificator value
+     * @param {string} identificator.type Identificator type: 'email', 'permission'
      */
-     unshareFrom(fileId, driveId, email) {
+    unshareFrom(fileId, driveId, identificator) {
         const permissionUrl = `${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`;
-        return this.graphApi.request(permissionUrl)
-            .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
-            .then(data => {
-                const permission = data.value.find(d => {
-                    // unshare for public link
-                    if (!email) {
-                        return _.has(d, 'link.type') && !_.has(d, 'invitation');
-                    }
 
-                    // unshare for email
-                    return d.invitation && d.invitation.email === email
-                })
-                if (permission) {
-                    return this.graphApi.request(`${permissionUrl}/${permission.id}`, "DELETE")
-                    .catch(logErrorAndReject('Non-200 while removing permission', this.logger))
-                    .then(() => {});
-                }
-                this.logger.error("Could not revoke permission from file", { fileId, email });
-                return Promise.reject(new Error("Could not revoke permission from file"));
-            });
+        switch (identificator.type) {
+            case SHARING_IDENTIFICATOR.EMAIL:
+                return this._unshareByEmail(permissionUrl, identificator.value);
+            case SHARING_IDENTIFICATOR.PERMISSION:
+                return this._unshareByPermission(permissionUrl, identificator.value);
+        }
     }
 
     getAccountId() {
@@ -288,6 +281,40 @@ class OneDriveClient extends BaseDriveClient {
     deleteSubscription(subscriptionId) {
         return this.graphApi.request(`${ROOT_URL}/subscriptions/${subscriptionId}`, 'delete')
             .catch(logErrorAndReject(`Non-200 while trying to delete subscription ${subscriptionId}`, this.logger));
+    }
+
+    /**
+     * Unshares file by user's email
+     * @async
+     *
+     * @param {string} permissionUrl Permissions endpoint, which can be continued depending on next action
+     * @param {string} email User's email
+     */
+    _unshareByEmail(permissionUrl, email) {
+        return this.graphApi.request(permissionUrl)
+            .catch(logErrorAndReject('Non-200 while trying to list permissions on file', this.logger))
+            .then(data => {
+                const permission = data.value.find(d => _.get(d, 'invitation.email') === email);
+                if (permission) {
+                    return this._unshareByPermission(permissionUrl, permission.id)
+                        .then(() => {});
+                }
+                this.logger.error("Could not revoke permission from file", { fileId, email });
+                return Promise.reject(new Error("Could not revoke permission from file"));
+            });
+    }
+
+    /**
+     * Unshares file by permission ID.
+     * E.g., public link (for any user) you can unshare only by permissionId
+     * @async
+     *
+     * @param {string} permissionUrl Permissions endpoint, which can be continued depending on next action
+     * @param {string} permissionId Permission ID
+     */
+    _unshareByPermission(permissionUrl, permissionId) {
+        return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
+            .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
 
 }
