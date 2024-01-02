@@ -1,26 +1,28 @@
 const { addDays } = require('date-fns');
 const _ = require('lodash');
-const querystring = require('querystring');
+const querystring = require('querystring'); // deprecated for node 14-17, will be stable for node 18
 const { UPLOAD_CONFLICT_RESOLUTION_MODES } = require('./constants');
 const {
     logErrorAndReject,
     formatDriveResponse,
+    formatItemResponse,
     validateAndDefaultTo,
     getParamValue,
 } = require("./util");
+const BaseDriveClient = require('./baseDriveClient');
 
-const ROOT_URL = 'https://graph.microsoft.com/v1.0'
 
+const ROOT_URL = 'https://graph.microsoft.com/v1.0';
+const rootFolderId = 'root';
 const SHARING_IDENTIFICATOR = {
     EMAIL: 'email',
     PERMISSION: 'permission',
 };
 
-class OneDriveClient {
+class OneDriveClient extends BaseDriveClient {
 
     constructor(graphApi, logger) {
-        this.graphApi = graphApi;
-        this.logger = logger;
+        super(graphApi, logger);
     }
 
     shareTo(fileId, driveId, email) {
@@ -29,6 +31,14 @@ class OneDriveClient {
             : this.shareForAnyone(fileId, driveId)
     }
 
+    /**
+     * Shares drive item for email
+     * @param {string} fileId Drive item ID
+     * @param {string} driveId Drive ID, which contains item
+     * @param {string} email Email, which share to
+     * @returns {Promise}
+     * @async
+     */
     shareForEmail(fileId, driveId, email) {
         return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
             requireSignin: true,
@@ -72,9 +82,16 @@ class OneDriveClient {
     }
 
     getAccountId() {
-        return this.graphApi.request('https://graph.microsoft.com/v1.0/me/drive/')
-        .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger))
-        .then(data => data.id);
+        return this.getDriveInfo().then(data => data.id);
+    }
+
+    getDriveInfo(fields = []) {
+        const qs = fields.length
+            ? querystring.stringify({ '$select': fields.join(',') })
+            : '';
+
+        return this.graphApi.request(`${ROOT_URL}/me/drive?${qs}`)
+            .catch(logErrorAndReject('Non-200 while trying to query user details', this.logger));
     }
 
     getAccountInfo(fields = []) {
@@ -92,28 +109,21 @@ class OneDriveClient {
     }
 
     getFilesFrom(parentId, options = {}) {
-        parentId = parentId || 'root';
+        parentId = this._validateContainer(parentId);
         this.logger.info('Querying OneDrive files', { folder: parentId });
-        const qs = querystring.stringify(_.pickBy(options));
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children?${qs}`)
-            .catch(logErrorAndReject(`Non-200 while querying folder: ${parentId}`, this.logger))
-            .then(formatDriveResponse);
+        return super.getFilesFrom(`${this.ROOT_URL}/me/drive/items/${parentId}/children`, options);
     }
 
     getFileById(fileId) {
         this.logger.info('Getting OneDrive file', { fileId });
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}`)
-        .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-        .then(data => {
-            return {
-                name: data.name,
-                webUrl: data.webUrl,
-                packageType: data.package ? data.package.type : '',
-                parentReference: {
-                    path: data.parentReference.path,
-                },
-            }
-        });
+        return super.getFileById(`${this.ROOT_URL}/me/drive/items/${fileId}`);
+    }
+
+    getFilePermissions(fileId) {
+        this.logger.info('Getting OneDrive file permissions', { fileId });
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/permissions`)
+            .catch(logErrorAndReject(`Non-200 while querying file permissions ${fileId}`, this.logger))
+            .then(data => data.value);
     }
 
     getPublicUrl(fileId) {
@@ -123,28 +133,34 @@ class OneDriveClient {
 
     getPreview(fileId) {
         this.logger.info('Getting OneDrive file preview', { fileId });
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/thumbnails`)
-            .catch(logErrorAndReject(`Non-200 while querying file ${fileId}`, this.logger))
-            .then(data => {
-                return  data.value;
-            });
+        return super.getPreview(`${this.ROOT_URL}/me/drive/items/${fileId}/thumbnails`);
     }
 
-    createFolder(folderName, rootFolder = 'root') {
-        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${rootFolder}/children`
-        return this.graphApi.request(url, 'post', {
+    createFolder(folderName, parentId = rootFolderId, autorename = true) {
+        parentId = parentId || rootFolderId; // there can be gotten parentId = '', which causes invalid api url
+        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${parentId}/children`;
+
+        const body = {
             name: folderName,
             folder: { },
-            "@microsoft.graph.conflictBehavior": "rename"
-        })
+        };
+
+        const autorenameField = '@microsoft.graph.conflictBehavior';
+        if (autorename) {
+            body[autorenameField] = "rename";
+        } else {
+            body[autorenameField] = "fail";
+        }
+
+        return this.graphApi.request(url, 'post', body)
             .catch(logErrorAndReject('Non-200 while trying to create folder', this.logger))
-            .then(data => {
-                return data.id
-            });
+            .then(formatItemResponse);
     }
 
-    createFileAndPopulate(fileName, content, folderId = '') {
-        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${folderId}:/${fileName}.docx:/content`, 'put', content)
+    createFileAndPopulate(fileName, content, folderId = '', useDocx = true) {
+        const ext = useDocx ? 'docx' : 'doc';
+
+        return this.graphApi.request(`https://graph.microsoft.com/v1.0/me/drive/items/${folderId}:/${fileName}.${ext}:/content`, 'put', content)
             .catch(logErrorAndReject('Non-200 while trying to create file with content', this.logger))
             .then(data => data.id);
     }
@@ -216,7 +232,7 @@ class OneDriveClient {
      * @typedef CreateSubscriptionPayload
      * @property {string}   [changeType='update']       Indicates the type of change that generated the notification. For OneDrive, this will always be 'updated'
      * @property {string}   notificationUrl             Webhook handler endpoint URL
-     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscibe on
+     * @property {string}   [resource='me/drive/root']  Folder URL, which we subscribe on
      * @property {Date}     [expirationDateTime]        The date and time when the subscription will expire if not updated or renewed (can only be 43200 minutes in the future)
      * @property {string}   [clientState='']            An optional string value that is passed back in the notification message for this subscription.
      */
@@ -230,14 +246,14 @@ class OneDriveClient {
             throw new Error('There was no webhook handler endpoint provided');
         }
 
-        const defaultPaylaod = {
+        const defaultPayload = {
             changeType: 'updated',
             resource: 'me/drive/root',
             expirationDateTime: addDays(new Date(), 30), // 43200 / 60 / 24 = 30 days
             clientState: '',
         };
 
-        const fullPayload = { ...defaultPaylaod, ...payload };
+        const fullPayload = { ...defaultPayload, ...payload };
 
         return this.graphApi.request(`${ROOT_URL}/subscriptions`, 'post', fullPayload)
             .catch(logErrorAndReject('Non-200 while trying to create subscription', this.logger));
@@ -245,7 +261,7 @@ class OneDriveClient {
 
     /**
      * @typedef UpdateSubscriptionPayload
-     * @property {Date} expirationDateTime Date, which subcription expires on (not more than 43200 hours = 30 days)
+     * @property {Date} expirationDateTime Date, which subscription expires on (not more than 43200 hours = 30 days)
      */
 
     /**
@@ -300,7 +316,7 @@ class OneDriveClient {
         return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
             .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
     }
-    
+
 }
 
 module.exports = OneDriveClient;

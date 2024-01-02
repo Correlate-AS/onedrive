@@ -24,12 +24,16 @@ const formatDriveResponse = data => {
     }
     return {
         cursor: skiptoken,
-        items: value.map(file => ({
-            ...file,
-            isFolder: !!file.folder,
-        }))
+        items: value.map(formatItemResponse),
     };
 };
+
+const formatItemResponse = item => {
+    return {
+        ...item,
+        isFolder: !!item.folder,
+    };
+}
 
 const DEFAULT_SCOPES = [
     'offline_access',
@@ -59,6 +63,24 @@ function getParamValue(url, paramName) {
     return tokenValue;
 }
 
+/**
+ * Removes `undefined` and `null` properties from object.
+ * Doesn't change input object.
+ * @param {object} obj 
+ * @returns {object}
+ */
+function removeNilValues(obj) {
+    const newObj = { ...obj };
+
+    for (const key in newObj) {
+        if (_.isNil(newObj[key])) {
+            delete newObj[key];
+        }
+    }
+
+    return newObj;
+}
+
 module.exports = {
     logErrorAndReject,
     formatDriveResponse,
@@ -66,4 +88,5 @@ module.exports = {
     equalsToOneOfValues,
     validateAndDefaultTo,
     getParamValue,
+    removeNilValues,
 };
