@@ -131,7 +131,7 @@ class OneDriveClient extends BaseDriveClient {
               'type': 'view',
               'scope': 'anonymous'
           })
-          .then(({link}) => link.webUrl)
+          .then(res => res.link.webUrl);
     }
 
     getPreview(fileId) {
