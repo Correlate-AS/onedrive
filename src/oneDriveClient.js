@@ -127,8 +127,11 @@ class OneDriveClient extends BaseDriveClient {
     }
 
     getPublicUrl(fileId) {
-        return this.getFileById(fileId)
-            .then(file => file.webUrl);
+        return this.graphApi.request(`${this.ROOT_URL}/me/drive/items/${fileId}/createLink`, 'POST', {
+              'type': 'view',
+              'scope': 'anonymous'
+          })
+          .then(({link}) => link.webUrl)
     }
 
     getPreview(fileId) {
