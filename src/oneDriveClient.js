@@ -126,10 +126,10 @@ class OneDriveClient extends BaseDriveClient {
             .then(data => data.value);
     }
 
-    getPublicUrl(fileId) {
+    /*getPublicUrl(fileId) {
         return this.getFileById(fileId)
-            .then(file => file.webUrl);
-    }
+          .then(file => file.webUrl);
+    }*/
 
     getPreview(fileId) {
         this.logger.info('Getting OneDrive file preview', { fileId });
@@ -315,6 +315,72 @@ class OneDriveClient extends BaseDriveClient {
     _unshareByPermission(permissionUrl, permissionId) {
         return this.graphApi.request(`${permissionUrl}/${permissionId}`, "DELETE")
             .catch(logErrorAndReject('Non-200 while removing permission', this.logger));
+    }
+
+    // Rework Share/UnShare
+
+    shareBy (fileId, driveId, email) {
+        this.logger.info('SHARE:BY', { fileId, email })
+        return email
+          ? this.addPermissionByEmail(fileId, driveId, email)
+          : Promise.resolve()
+    }
+
+    unshareBy (fileId, driveId, email) {
+        this.logger.info('UNSHARE:BY', { fileId, email })
+        return email
+          ? this.deletePermissionByEmail(fileId, driveId, email)
+          : Promise.resolve()
+    }
+
+    getOwnerUrl (fileId) {
+        this.logger.info('OWNER:URL', fileId)
+        return this.graphApi.request(`${ROOT_URL}/me/drive/items/${fileId}`)
+          .then(res => res.webUrl)
+    }
+
+    getPublicUrl (fileId) {
+        this.logger.info('PUBLIC:URL', fileId)
+        return this.graphApi.request(`${ROOT_URL}/me/drive/items/${fileId}/createLink`, 'POST', { type: 'view' })
+          .then(res => res.link.webUrl)
+    }
+
+    getPermissions (fileId, driveId) {
+        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions`)
+          .then(res => res.value)
+          .catch(logErrorAndReject(`Non-200 while querying file permissions ${fileId}`, this.logger))
+    }
+
+    addPermissionByEmail (fileId, driveId, email, role = 'read') {
+        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/invite`, 'POST', {
+              requireSignin: true,
+              roles: [role],
+              recipients: [{ email }]
+          })
+          .then(res => res.value[0].link.webUrl)
+          .catch(logErrorAndReject('Non-200 while trying to share file', this.logger))
+    }
+
+    deletePermission (fileId, driveId, permission) {
+        return this.graphApi.request(`${ROOT_URL}/drives/${driveId}/items/${fileId}/permissions/${permission}`, 'DELETE')
+          .catch(logErrorAndReject('Non-200 while removing permission', this.logger))
+    }
+
+    deletePermissionByEmail (fileId, driveId, email) {
+        return this.getPermissionByEmail(fileId, driveId, email)
+          .then(permission => permission
+            ? this.deletePermission(fileId, driveId, permission)
+            : Promise.resolve('permission unavailable'))
+    }
+
+    getPermissionByEmail (fileId, driveId, email) {
+        return this.getPermissions(fileId, driveId)
+          .then(permissions => _
+            .chain(permissions)
+            .find(x => email === x?.invitation?.email)
+            .pick('id')
+            .reduce(x => x)
+            .value())
     }
 
 }
