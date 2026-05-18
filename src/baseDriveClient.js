@@ -55,6 +55,13 @@ class BaseDriveClient extends GraphClient {
             });
     }
 
+    /**
+     * Download the contents of the primary stream (file) of a driveItem.
+     * @param {string} endpoint Service specific endpoint
+     * @param {object} options
+     * @returns {Promise<DriveItem>} https://learn.microsoft.com/en-us/graph/api/driveitem-get-content?view=graph-rest-1.0&tabs=http
+     * @async
+     */
     getFileContent(endpoint, options, axiosOptions) {
         this.logger.info(`Query options`, { options });
         const queryOptions = querystring.stringify(options);
